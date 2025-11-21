@@ -1,123 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import { areaService } from '../../services/areaService';
-import AreaForm from './AreaForm';
-import './AreaList.css';
-import { Schedule } from '../../services/Schedule';
+import React, { useState, useEffect } from "react";
+import { scheduleService } from "../../services/scheduleService";
+import ScheduleForm from "./ScheduleForm";
 
 const ScheduleList = () => {
-  const [areas, setAreas] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedArea, setSelectedArea] = useState(null);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadAreas();
+    loadSchedules();
   }, []);
 
-  const loadAreas = async () => {
+  const loadSchedules = async () => {
     setLoading(true);
     try {
-      const response = await areaService.getAll();
-      setAreas(response.data);
+      const response = await scheduleService.getAll();
+      setSchedules(response.data);
     } catch (error) {
-      console.error('Error al cargar áreas:', error);
-      alert('Error al cargar áreas');
+      console.error("Error al cargar horarios:", error);
+      alert("Error al cargar horarios");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar esta área?')) {
+    if (window.confirm("¿Eliminar este horario?")) {
       try {
-        await areaService.delete(id);
-        alert('Área eliminada correctamente');
-        loadAreas();
+        await scheduleService.delete(id);
+        alert("Horario eliminado");
+        loadSchedules();
       } catch (error) {
-        console.error('Error al eliminar área:', error);
-        alert('Error al eliminar área');
+        console.error("Error:", error);
+        alert("Error al eliminar");
       }
     }
   };
 
-  const handleEdit = (area) => {
-    setSelectedArea(area);
+  const handleEdit = (schedule) => {
+    setSelectedSchedule(schedule);
     setShowModal(true);
   };
 
   const handleNew = () => {
-    setSelectedArea(null);
+    setSelectedSchedule(null);
     setShowModal(true);
   };
 
   const handleSave = () => {
     setShowModal(false);
-    setSelectedArea(null);
-    loadAreas();
+    setSelectedSchedule(null);
+    loadSchedules();
   };
 
   return (
-    <div className="area-list">
-      <div className="page-header">
-        <h1>🏢 Gestión de Áreas</h1>
+    <div className="container mt-4">
+
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>⏰ Gestión de Horarios</h2>
         <button className="btn btn-primary" onClick={handleNew}>
-          ➕ Nueva Área
+          ➕ Nuevo Horario
         </button>
       </div>
 
-      {loading ? (
-        <div className="loading">Cargando...</div>
-      ) : (
-        <div className="table-container">
-          <table className="table">
-            <thead>
+      {/* Loading */}
+      {loading && <div className="alert alert-info">Cargando horarios...</div>}
+
+      {/* Table */}
+      {!loading && (
+        <table className="table table-striped table-bordered">
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Creado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {schedules.length === 0 ? (
               <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Fecha Creación</th>
-                <th>Acciones</th>
+                <td colSpan="5" className="text-center">
+                  No hay horarios registrados
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {areas.length === 0 ? (
-                <tr>
-                  <td colSpan="5" style={{textAlign: 'center'}}>
-                    No hay áreas registradas
+            ) : (
+              schedules.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.id}</td>
+                  <td>{s.startTime}</td>
+                  <td>{s.endTime}</td>
+                  <td>
+                    {s.createdAt
+                      ? new Date(s.createdAt).toLocaleDateString()
+                      : ""}
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-warning btn-sm me-2"
+                      onClick={() => handleEdit(s)}
+                    >
+                      ✏️ Editar
+                    </button>
+
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(s.id)}
+                    >
+                      🗑️ Eliminar
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                areas.map((area) => (
-                  <tr key={area.id}>
-                    <td>{area.id}</td>
-                    <td>{area.name}</td>
-                    <td>{area.description}</td>
-                    <td>{new Date(area.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <button 
-                        className="btn btn-edit" 
-                        onClick={() => handleEdit(area)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="btn btn-delete" 
-                        onClick={() => handleDelete(area.id)}
-                      >
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       )}
 
+      {/* Modal */}
       {showModal && (
-        <AreaForm 
-          area={selectedArea} 
+        <ScheduleForm
+          schedule={selectedSchedule}
           onClose={() => setShowModal(false)}
           onSave={handleSave}
         />
@@ -127,3 +134,4 @@ const ScheduleList = () => {
 };
 
 export default ScheduleList;
+

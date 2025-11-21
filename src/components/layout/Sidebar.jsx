@@ -10,13 +10,14 @@ const Sidebar = () => {
     { path: '/areas', icon: '🏢', label: 'Áreas' },
     { path: '/schedules', icon: '⏰', label: 'Horarios' },
     { path: '/employees', icon: '👥', label: 'Empleados' },
-    { path: '/attendance', icon: '✅', label: 'Asistencias' }
+    { path: '/attendance', icon: '✅', label: 'Asistencias' },
+     { path: '/loginattedance', icon: '', label: 'login' }
   ];
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h2>📋 Sistema Asistencia</h2>
+        <h2>📋 Asistencia Modulare</h2>
       </div>
       <nav className="sidebar-nav">
         {menuItems.map((item) => (
