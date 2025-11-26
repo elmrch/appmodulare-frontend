@@ -1,27 +1,11 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:8080/attendances";
+import api from "./api";
 
 export const attendanceService = {
+  getAll: () => api.get("/attendances"),
 
-  getAll: async () => {
-    const response = await axios.get(API_URL);
-    return response.data;
-  },
-delete: async (id) => {
-  const response = await axios.delete(`${API_URL}/${id}`);
-  return response.data;
-},
+  delete: (id) => api.delete(`/attendances/${id}`),
 
+  checkIn: (dni) => api.post("/attendances/check-in", { dni }),
 
-
-  checkIn: async (dni) => {
-    const response = await axios.post(`${API_URL}/check-in`, { dni });
-    return response.data;
-  },
-
-  checkOut: async (dni) => {
-    const response = await axios.post(`${API_URL}/check-out`, { dni });
-    return response.data;
-  },
+  checkOut: (dni) => api.post("/attendances/check-out", { dni }),
 };

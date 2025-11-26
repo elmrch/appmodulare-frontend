@@ -1,9 +1,10 @@
-import api from './api';
+import api from "./api";
 
 export const scheduleService = {
-  getAll: () => api.get('/api/schedules'),
-  getById: (id) => api.get(`/api/schedules/${id}`),
-  create: (data) => api.post('/api/schedules', data),
+  getAll: () => api.get("/api/schedules"),
+  create: (data) => api.post("/api/schedules", data),
+
   update: (id, data) => api.put(`/api/schedules/${id}`, data),
-  delete: (id) => api.delete(`/api/schedules/${id}`)
+
+  delete: (id) => api.delete(`/api/schedules/${id}`),
 };

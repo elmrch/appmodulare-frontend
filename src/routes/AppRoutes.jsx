@@ -1,30 +1,45 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Dashboard from '../pages/Dashboard';
 import AreaList from '../pages/Areas/AreaList';
 import ScheduleList from '../pages/Schedules/ScheduleList';
 import EmployeeList from '../pages/Employees/EmployeeList';
 import AttendanceList from '../pages/Attendance/AttendanceList';
-import LoginRegister from '../pages/LoginAttedance/LoginRegister'
-// Importar más páginas cuando las crees
+import LoginRegister from '../pages/LoginAttedance/LoginRegister';
+import LoginAdmin from '../pages/Auth/LoginAdmin';
+import PrivateRoute from './PrivateRoute';
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/areas" element={<AreaList />} />
-           <Route path="/Schedules" element={<ScheduleList />} />
-           <Route path="/Employees" element={<EmployeeList />} />
-           <Route path="/loginattedance" element={<LoginRegister />} />
-           <Route path="/attendance" element={<AttendanceList />} />
+      <Routes>
 
-          {/* Agregar más rutas aquí */}
-        </Routes>
-      </Layout>
-      
+        {/* Login para marcar asistencia */}
+        <Route path="/" element={<LoginRegister />} />
+
+        {/* Login para administración */}
+        <Route path="/login-admin" element={<LoginAdmin />} />
+
+        {/* Rutas protegidas */}
+        <Route
+          element={
+            <PrivateRoute>
+              <Layout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/areas" element={<AreaList />} />
+          <Route path="/schedules" element={<ScheduleList />} />
+          <Route path="/employees" element={<EmployeeList />} />
+          <Route path="/attendance" element={<AttendanceList />} />
+        </Route>
+
+        {/* Si ponen algo extraño → login asistencia */}
+        <Route path="*" element={<Navigate to="/" />} />
+
+      </Routes>
     </BrowserRouter>
   );
 };

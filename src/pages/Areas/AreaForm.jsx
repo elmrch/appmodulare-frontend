@@ -12,7 +12,7 @@ const AreaForm = ({ area, onClose, onSave }) => {
     if (area) {
       setFormData({
         name: area.name,
-        description: area.description
+        description: area.description || ''
       });
     }
   }, [area]);
@@ -30,15 +30,13 @@ const AreaForm = ({ area, onClose, onSave }) => {
     try {
       if (area) {
         await areaService.update(area.id, formData);
-        alert('Área actualizada correctamente');
+        onSave(true); // true = es edición
       } else {
         await areaService.create(formData);
-        alert('Área creada correctamente');
+        onSave(false); // false = es creación
       }
-      onSave();
     } catch (error) {
       console.error('Error al guardar área:', error);
-      alert('Error al guardar área');
     }
   };
 
@@ -59,7 +57,7 @@ const AreaForm = ({ area, onClose, onSave }) => {
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="Ej: Ventas"
+              placeholder="Ej: Ventas, Administración, TI"
             />
           </div>
 
@@ -70,7 +68,7 @@ const AreaForm = ({ area, onClose, onSave }) => {
               value={formData.description}
               onChange={handleChange}
               rows="4"
-              placeholder="Descripción del área"
+              placeholder="Descripción del área..."
             />
           </div>
 
