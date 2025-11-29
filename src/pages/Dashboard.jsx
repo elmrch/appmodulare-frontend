@@ -6,12 +6,17 @@ import { scheduleService } from '../services/scheduleService';
 import { attendanceService } from '../services/attendanceService';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalEmployees: 0,
-    totalAreas: 0,
-    totalSchedules: 0,
-    todayAttendances: 0
-  });
+const [stats, setStats] = useState({
+  totalEmployees: 0,
+  totalAreas: 0,
+  totalSchedules: 0,
+  todayAttendances: 0,
+  todayPunctual: 0,
+  todayLate: 0,
+  todayAbsent: 0,
+  todayNoCheckOut: 0
+});
+
 
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState([]);
@@ -49,13 +54,29 @@ const Dashboard = () => {
       const todayAttendances = attendances.filter(a => 
         a.date && a.date.startsWith(today)
       );
+      // PUNTUALES HOY
+const punctualToday = todayAttendances.filter(a => a.status === "PUNTUAL").length;
 
-      setStats({
-        totalEmployees: employees.length,
-        totalAreas: areas.length,
-        totalSchedules: schedules.length,
-        todayAttendances: todayAttendances.length
-      });
+// TARDES HOY
+const lateToday = todayAttendances.filter(a => a.status === "TARDE").length;
+
+// NO MARCÓ SALIDA
+const noCheckOutToday = todayAttendances.filter(a => !a.checkOut).length;
+
+// FALTAS HOY = empleados totales - asistencias totales
+const absentToday = employees.length - todayAttendances.length;
+
+
+setStats({
+  totalEmployees: employees.length,
+  totalAreas: areas.length,
+  totalSchedules: schedules.length,
+  todayAttendances: todayAttendances.length,
+  todayPunctual: punctualToday,
+  todayLate: lateToday,
+  todayAbsent: absentToday,
+  todayNoCheckOut: noCheckOutToday
+});
 
       // Procesar datos mensuales (últimos 4 meses)
       const monthlyStats = processMonthlyAttendance(attendances);
@@ -182,7 +203,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="container-fluid mt-4">
+   <div className="container-fluid mt-4 px-4" style={{ maxWidth: '100%' }}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">📊 Dashboard</h2>
         <button 
@@ -224,18 +245,50 @@ const Dashboard = () => {
           color="#343a40"
           bgColor="#e9ecef"
         />
+        <StatCard 
+  icon="⏱️" 
+  title="Puntuales Hoy" 
+  value={stats.todayPunctual}
+  color="#28a745"
+  bgColor="#e6f4ea"
+/>
+
+<StatCard 
+  icon="⚠️" 
+  title="Tardes Hoy" 
+  value={stats.todayLate}
+  color="#ffc107"
+  bgColor="#fff8e1"
+/>
+
+<StatCard 
+  icon="❌" 
+  title="Faltas Hoy" 
+  value={stats.todayAbsent}
+  color="#dc3545"
+  bgColor="#fbeaec"
+/>
+
+<StatCard 
+  icon="🚫" 
+  title="No Marcó Salida" 
+  value={stats.todayNoCheckOut}
+  color="#6f42c1"
+  bgColor="#f3e8ff"
+/>
+
       </div>
 
       {/* Gráficos */}
-      <div className="row mt-4">
+      <div className="row mt-4 g-4">
         {/* Gráfico de dona - Asistencia General */}
-        <div className="col-md-6 mb-4">
+        <div className="col-lg-6 col-md-12 mb-4">
           <div className="card shadow-sm">
             <div className="card-header bg-info text-white d-flex justify-content-between align-items-center">
               <span>Asistencia general</span>
               <button className="btn btn-sm btn-light">✕</button>
             </div>
-            <div className="card-body" style={{ height: '300px' }}>
+            <div className="card-body" style={{ height: '400px', padding: '20px' }}>
               {generalAttendance.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -271,13 +324,13 @@ const Dashboard = () => {
         </div>
 
         {/* Gráfico de barras - Asistencia Mensual */}
-        <div className="col-md-6 mb-4">
+        <div className="col-lg-6 col-md-12 mb-4">
           <div className="card shadow-sm">
             <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
               <span>Asistencia Mensual</span>
               <button className="btn btn-sm btn-light">✕</button>
             </div>
-            <div className="card-body" style={{ height: '300px' }}>
+           <div className="card-body" style={{ height: '400px', padding: '20px' }}>
               {monthlyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData}>

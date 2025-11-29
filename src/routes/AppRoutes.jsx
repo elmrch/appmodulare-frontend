@@ -9,14 +9,19 @@ import AttendanceList from '../pages/Attendance/AttendanceList';
 import LoginRegister from '../pages/LoginAttedance/LoginRegister';
 import LoginAdmin from '../pages/Auth/LoginAdmin';
 import PrivateRoute from './PrivateRoute';
+import ReportsList from '../pages/Reports/ReportsList';
+import AbsencesList from '../pages/Absences/AbsencesList';
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Login para marcar asistencia */}
-        <Route path="/" element={<LoginRegister />} />
+        {/* ✅ Ruta raíz redirige a /loginregister */}
+        <Route path="/" element={<Navigate to="/loginregister" replace />} />
+
+        {/* ✅ Login para marcar asistencia */}
+        <Route path="/loginregister" element={<LoginRegister />} />
 
         {/* Login para administración */}
         <Route path="/login-admin" element={<LoginAdmin />} />
@@ -34,10 +39,12 @@ const AppRoutes = () => {
           <Route path="/schedules" element={<ScheduleList />} />
           <Route path="/employees" element={<EmployeeList />} />
           <Route path="/attendance" element={<AttendanceList />} />
+          <Route path="/reports" element={<ReportsList />} />
+          <Route path="/absences" element={<AbsencesList />} />
         </Route>
 
-        {/* Si ponen algo extraño → login asistencia */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Si ponen algo extraño → loginregister */}
+        <Route path="*" element={<Navigate to="/loginregister" replace />} />
 
       </Routes>
     </BrowserRouter>
