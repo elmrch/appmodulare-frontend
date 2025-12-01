@@ -38,7 +38,8 @@ const Sidebar = () => {
     { path: '/attendance', icon: '✅', label: 'Asistencias', color: '#198754' },
     { path: '/users', icon: '👤', label: 'Usuarios', color: '#0dcaf0' },
       { path: '/reports', icon: '📑', label: 'Reportes', color: '#fd7e14' },
-      { path: '/absences', icon: '📑', label: 'Absence', color: '#fd7e14' },
+     { path: '/absences', icon: '🚫', label: 'Ausencias', color: '#ff4d4d' },
+  { path: '/visitas', icon: '🪪', label: 'Visitas', color: '#20c997' },
 
   ];
 
