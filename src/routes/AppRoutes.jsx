@@ -11,6 +11,8 @@ import LoginAdmin from '../pages/Auth/LoginAdmin';
 import PrivateRoute from './PrivateRoute';
 import ReportsList from '../pages/Reports/ReportsList';
 import AbsencesList from '../pages/Absences/AbsencesList';
+import VisitList from '../pages/Visit/VisitList';
+import VisitLogin from '../pages/VisitLogin/VisitLogin';
 
 const AppRoutes = () => {
   return (
@@ -25,6 +27,7 @@ const AppRoutes = () => {
 
         {/* Login para administración */}
         <Route path="/login-admin" element={<LoginAdmin />} />
+           <Route path="/Visit-Login" element={<VisitLogin/>} />
 
         {/* Rutas protegidas */}
         <Route
@@ -41,6 +44,7 @@ const AppRoutes = () => {
           <Route path="/attendance" element={<AttendanceList />} />
           <Route path="/reports" element={<ReportsList />} />
           <Route path="/absences" element={<AbsencesList />} />
+          <Route path="/visitas" element={<VisitList />} />
         </Route>
 
         {/* Si ponen algo extraño → loginregister */}

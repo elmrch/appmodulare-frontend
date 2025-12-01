@@ -230,6 +230,13 @@ const AttendanceForm = () => {
         Ir al Dashboard
       </button>
 
+           <button
+        className="btn btn-secondary mt-2"
+        onClick={() => navigate("/Visit-Login")}   // ← YA FUNCIONA
+      >
+        visitantes
+      </button>
+
         {/* Footer */}
         <p className="text-center text-white-50 small mt-3 mb-0">
           © 2025 Modulare - Módulos Arequipa S.A.C.
