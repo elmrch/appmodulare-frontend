@@ -9,27 +9,21 @@ const Sidebar = () => {
   const [username, setUsername] = useState('Usuario');
   const [userEmail, setUserEmail] = useState('usuario@email.com');
   const [isOpen, setIsOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    // Obtener el username y email del localStorage
     const storedUsername = localStorage.getItem('username');
     const storedEmail = localStorage.getItem('email');
     
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-    if (storedEmail) {
-      setUserEmail(storedEmail);
-    }
+    if (storedUsername) setUsername(storedUsername);
+    if (storedEmail) setUserEmail(storedEmail);
   }, []);
 
   const handleLogout = () => {
-    if (window.confirm('¿Estás seguro de cerrar sesión?')) {
-      userService.logout();
-      localStorage.removeItem('username');
-      localStorage.removeItem('email');
-      navigate('/login-admin');
-    }
+    userService.logout();
+    localStorage.removeItem('username');
+    localStorage.removeItem('email');
+    navigate('/login-admin');
   };
 
   const toggleSidebar = () => {
@@ -37,25 +31,34 @@ const Sidebar = () => {
   };
 
   const menuItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/areas', icon: '🏢', label: 'Áreas' },
-    { path: '/schedules', icon: '⏰', label: 'Horarios' },
-    { path: '/employees', icon: '👥', label: 'Empleados' },
-    { path: '/attendance', icon: '✅', label: 'Asistencias' },
-    { path: '/users', icon: '👤', label: 'Usuarios' },
+    { path: '/dashboard', icon: '📊', label: 'Dashboard', color: '#0d6efd' },
+    { path: '/areas', icon: '🏢', label: 'Áreas', color: '#6610f2' },
+    { path: '/schedules', icon: '⏰', label: 'Horarios', color: '#6f42c1' },
+    { path: '/employees', icon: '👥', label: 'Empleados', color: '#d63384' },
+    { path: '/attendance', icon: '✅', label: 'Asistencias', color: '#198754' },
+    { path: '/users', icon: '👤', label: 'Usuarios', color: '#0dcaf0' },
+      { path: '/reports', icon: '📑', label: 'Reportes', color: '#fd7e14' },
+      { path: '/absences', icon: '📑', label: 'Absence', color: '#fd7e14' },
+
   ];
 
   return (
     <>
       {/* Botón toggle para móvil */}
       <button className="sidebar-toggle" onClick={toggleSidebar}>
-        {isOpen ? '✕' : '☰'}
+        <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
       </button>
 
       {/* Sidebar */}
       <div className={`sidebar ${isOpen ? 'active' : ''}`}>
         <div className="sidebar-header">
-          <h2>📋 Asistencia Modulare</h2>
+          <div className="d-flex align-items-center">
+            <div className="sidebar-logo">📋</div>
+            <div>
+              <h5 className="mb-0 fw-bold">Modulare</h5>
+              <small className="text-white-50">Sistema de Asistencias</small>
+            </div>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -65,32 +68,38 @@ const Sidebar = () => {
               to={item.path}
               className={`sidebar-item ${location.pathname === item.path ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
+              style={{
+                '--item-color': item.color
+              }}
             >
               <span className="icon">{item.icon}</span>
               <span className="label">{item.label}</span>
+              {location.pathname === item.path && (
+                <span className="active-indicator"></span>
+              )}
             </Link>
           ))}
         </nav>
 
         {/* Usuario y botón de logout */}
         <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="user-avatar" title={userEmail}>
+          <div className="user-card">
+            <div className="user-avatar">
               {username.charAt(0).toUpperCase()}
             </div>
-            <div className="user-details">
-              <span className="user-name" title={username}>{username}</span>
-              <span className="user-role" title={userEmail}>
+            <div className="user-info">
+              <div className="user-name">{username}</div>
+              <div className="user-email">
                 {userEmail.length > 20 ? userEmail.substring(0, 20) + '...' : userEmail}
-              </span>
+              </div>
             </div>
           </div>
           <button 
             className="logout-btn" 
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             title="Cerrar sesión"
           >
-            🚪
+            <i className="bi bi-box-arrow-right"></i>
           </button>
         </div>
       </div>
@@ -100,17 +109,37 @@ const Sidebar = () => {
         <div 
           className="sidebar-overlay" 
           onClick={() => setIsOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 999,
-            display: window.innerWidth <= 992 ? 'block' : 'none'
-          }}
         />
+      )}
+
+      {/* Modal de confirmación de logout */}
+      {showLogoutModal && (
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header bg-warning text-dark">
+                <h5 className="modal-title">
+                  <i className="bi bi-box-arrow-right me-2"></i>
+                  Cerrar Sesión
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowLogoutModal(false)}></button>
+              </div>
+              <div className="modal-body text-center py-4">
+                <i className="bi bi-question-circle text-warning" style={{fontSize: '3rem'}}></i>
+                <p className="mt-3 mb-2">¿Estás seguro de cerrar sesión?</p>
+                <p className="text-muted small">Tendrás que volver a iniciar sesión</p>
+              </div>
+              <div className="modal-footer justify-content-center">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowLogoutModal(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-warning" onClick={handleLogout}>
+                  Sí, Cerrar Sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

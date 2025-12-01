@@ -5,6 +5,25 @@ import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
+// ✅ FUNCIÓN PARA FORMATEAR FECHAS SIN PROBLEMAS DE ZONA HORARIA
+const formatDateSafe = (dateString) => {
+  if (!dateString) return "—";
+  
+  // Si la fecha viene en formato YYYY-MM-DD
+  if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [year, month, day] = dateString.split('T')[0].split('-');
+    return `${day}/${month}/${year}`;
+  }
+  
+  // Fallback: usar Date pero con precaución
+  try {
+    const date = new Date(dateString + 'T00:00:00'); // Forzar medianoche local
+    return date.toLocaleDateString('es-PE');
+  } catch {
+    return "—";
+  }
+};
+
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -96,19 +115,16 @@ const EmployeeList = () => {
   // Exportar a PDF
   const exportToPDF = () => {
     const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
-    const doc = new jsPDF('l', 'mm', 'a4'); // landscape, milímetros, tamaño A4
+    const doc = new jsPDF('l', 'mm', 'a4');
     
-    // Título
     doc.setFontSize(20);
     doc.setTextColor(40, 40, 40);
     doc.text("LISTA DE EMPLEADOS", 148, 15, { align: 'center' });
     
-    // Fecha de generación
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 148, 22, { align: 'center' });
     
-    // Línea separadora
     doc.setLineWidth(0.5);
     doc.setDrawColor(52, 73, 94);
     doc.line(10, 25, 287, 25);
@@ -117,58 +133,48 @@ const EmployeeList = () => {
     const lineHeight = 8;
     const leftMargin = 10;
     
-    // Recorrer empleados
     dataToExport.forEach((e, index) => {
-      // Verificar si necesita nueva página
       if (yPos > 190) {
         doc.addPage();
         yPos = 20;
       }
       
-      // Fondo alternado
       if (index % 2 === 0) {
         doc.setFillColor(245, 245, 245);
         doc.rect(leftMargin, yPos - 6, 277, lineHeight * 5, 'F');
       }
       
-      // Encabezado del empleado
       doc.setFontSize(12);
       doc.setTextColor(52, 73, 94);
       doc.setFont(undefined, 'bold');
       doc.text(`${e.id}. ${e.firstName} ${e.lastName}`, leftMargin + 2, yPos);
       
-      // Información en columnas
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
       doc.setTextColor(80, 80, 80);
       
       yPos += lineHeight;
       
-      // Columna 1
       doc.text(`DNI: ${e.dni}`, leftMargin + 2, yPos);
       doc.text(`Email: ${e.email}`, leftMargin + 2, yPos + lineHeight);
       
-      // Columna 2
       doc.text(`Teléfono: ${e.phone || "—"}`, leftMargin + 80, yPos);
       doc.text(`Área: ${e.area ? e.area.name : "—"}`, leftMargin + 80, yPos + lineHeight);
       
-      // Columna 3
       doc.text(`Puesto: ${e.position || "—"}`, leftMargin + 150, yPos);
       doc.text(`Sueldo: ${e.salary ? "S/ " + parseFloat(e.salary).toFixed(2) : "—"}`, leftMargin + 150, yPos + lineHeight);
       
-      // Columna 4
       doc.text(`Horario: ${e.schedule ? `${e.schedule.startTime} - ${e.schedule.endTime}` : "—"}`, leftMargin + 220, yPos);
-      doc.text(`Ingreso: ${e.hireDate ? new Date(e.hireDate).toLocaleDateString() : "—"}`, leftMargin + 220, yPos + lineHeight);
+      // ✅ Usar formatDateSafe para el PDF
+      doc.text(`Ingreso: ${formatDateSafe(e.hireDate)}`, leftMargin + 220, yPos + lineHeight);
       
       yPos += lineHeight * 2 + 5;
       
-      // Línea separadora entre empleados
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.1);
       doc.line(leftMargin, yPos - 3, 287, yPos - 3);
     });
     
-    // Pie de página en todas las páginas
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -182,7 +188,6 @@ const EmployeeList = () => {
       );
     }
     
-    // Guardar PDF
     doc.save(`Empleados_${new Date().toISOString().split('T')[0]}.pdf`);
     showAlert("success", "PDF generado correctamente");
   };
@@ -191,7 +196,6 @@ const EmployeeList = () => {
   const exportToExcel = () => {
     const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
     
-    // Preparar datos
     const excelData = dataToExport.map(e => ({
       'ID': e.id,
       'Nombre': e.firstName,
@@ -204,34 +208,30 @@ const EmployeeList = () => {
       'Sueldo': e.salary || '',
       'Horario Inicio': e.schedule ? e.schedule.startTime : '',
       'Horario Fin': e.schedule ? e.schedule.endTime : '',
-      'Fecha Ingreso': e.hireDate ? new Date(e.hireDate).toLocaleDateString() : ''
+      // ✅ Guardar fecha en formato legible en Excel
+      'Fecha Ingreso': formatDateSafe(e.hireDate)
     }));
 
-    // Crear workbook y worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelData);
 
-    // Ajustar ancho de columnas
     const colWidths = [
-      { wch: 5 },  // ID
-      { wch: 15 }, // Nombre
-      { wch: 15 }, // Apellido
-      { wch: 12 }, // DNI
-      { wch: 25 }, // Email
-      { wch: 12 }, // Teléfono
-      { wch: 15 }, // Área
-      { wch: 15 }, // Puesto
-      { wch: 10 }, // Sueldo
-      { wch: 12 }, // Horario Inicio
-      { wch: 12 }, // Horario Fin
-      { wch: 15 }  // Fecha Ingreso
+      { wch: 5 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 25 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 15 }
     ];
     ws['!cols'] = colWidths;
 
-    // Agregar worksheet al workbook
     XLSX.utils.book_append_sheet(wb, ws, "Empleados");
-
-    // Guardar archivo
     XLSX.writeFile(wb, `Empleados_${new Date().toISOString().split('T')[0]}.xlsx`);
     showAlert("success", "Excel generado correctamente");
   };
@@ -251,7 +251,6 @@ const EmployeeList = () => {
         <h2 className="mb-0">👨‍💼 Gestión de Empleados</h2>
         
         <div className="d-flex gap-2 flex-wrap">
-          {/* Botones de exportación */}
           <div className="btn-group" role="group">
             <button 
               className="btn btn-success btn-sm"
@@ -308,10 +307,8 @@ const EmployeeList = () => {
         )}
       </div>
 
-      {/* Loading */}
       {loading && <div className="alert alert-info">Cargando empleados...</div>}
 
-      {/* Table */}
       {!loading && (
         <div className="table-responsive">
           <table className="table table-striped table-bordered">
@@ -360,9 +357,8 @@ const EmployeeList = () => {
                         : "—"}
                     </td>
                     <td>
-                      {e.hireDate
-                        ? new Date(e.hireDate).toLocaleDateString()
-                        : "—"}
+                      {/* ✅ AQUÍ ESTÁ LA CORRECCIÓN PRINCIPAL */}
+                      {formatDateSafe(e.hireDate)}
                     </td>
                     <td>
                       {e.photoUrl ? (
@@ -399,7 +395,6 @@ const EmployeeList = () => {
         </div>
       )}
 
-      {/* Modal Form */}
       {showModal && (
         <EmployeeForm
           employee={selectedEmployee}
@@ -408,7 +403,6 @@ const EmployeeList = () => {
         />
       )}
 
-      {/* Modal de confirmación Bootstrap */}
       {showDeleteModal && employeeToDelete && (
         <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>

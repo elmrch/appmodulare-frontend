@@ -23,6 +23,11 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
     scheduleId: "",
     photoUrl: ""
   });
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  return dateString.split("T")[0];
+};
+
 
   useEffect(() => {
     loadAreas();
@@ -36,7 +41,7 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
         email: employee.email ?? "",
         phone: employee.phone ?? "",
         address: employee.address ?? "",
-        hireDate: employee.hireDate ?? "",
+        hireDate: formatDate(employee.hireDate),
         areaId: employee.areaId ?? "",
         position: employee.position ?? "",
         salary: employee.salary ?? "",
@@ -71,6 +76,13 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
       [name]: (name === "areaId" || name === "scheduleId") ? Number(value) : value
     });
   };
+// --- CORRECCIÓN DE FECHA PARA EVITAR TIMEZONE ---
+const fixDate = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const corrected = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+  return corrected.toISOString().split("T")[0];
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -82,7 +94,8 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
       } else {
         await employeeService.create(formData);
       }
-      onSave();
+     onSave(!!employee);
+
     } catch (error) {
       console.error("Error:", error);
       alert("Error al guardar empleado");

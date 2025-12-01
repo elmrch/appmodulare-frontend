@@ -56,11 +56,11 @@ const AttendanceForm = () => {
 
       if (type === "in") {
         response = await attendanceService.checkIn(dni);
-        setMessage(`✅ Entrada registrada a las ${response.timeIn}. Estado: ${response.status}`);
+        setMessage(`✅ Entrada registrada`);
         setMessageType("success");
       } else {
         response = await attendanceService.checkOut(dni);
-        setMessage(`✅ Salida registrada a las ${response.timeOut}. Total horas: ${response.hoursWorked}`);
+        setMessage(`✅ Salida registrada `);
         setMessageType("success");
       }
       setDni("");

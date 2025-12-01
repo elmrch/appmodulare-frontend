@@ -23,7 +23,8 @@ const AttendanceForm = ({ attendance, onClose, onSave }) => {
         employee_id: attendance.employeeId ?? "",
         check_in: attendance.checkIn ?? "",
         check_out: attendance.checkOut ?? "",
-        total_hours: attendance.totalHours ?? "",
+        total_hours: attendance.totalHoursFormatted 
+         ?? "",
         status: attendance.status ?? "",
         date: attendance.date ?? "",
       });
