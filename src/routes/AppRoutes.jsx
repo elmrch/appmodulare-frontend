@@ -13,6 +13,7 @@ import ReportsList from '../pages/Reports/ReportsList';
 import AbsencesList from '../pages/Absences/AbsencesList';
 import VisitList from '../pages/Visit/VisitList';
 import VisitLogin from '../pages/VisitLogin/VisitLogin';
+import SecurityIncidentList from '../pages/Bitacora/SecurityIncidentList';
 
 const AppRoutes = () => {
   return (
@@ -45,6 +46,7 @@ const AppRoutes = () => {
           <Route path="/reports" element={<ReportsList />} />
           <Route path="/absences" element={<AbsencesList />} />
           <Route path="/visitas" element={<VisitList />} />
+          <Route path="/bitácora" element={<SecurityIncidentList />} />
         </Route>
 
         {/* Si ponen algo extraño → loginregister */}

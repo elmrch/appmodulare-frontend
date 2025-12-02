@@ -11,6 +11,7 @@ const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     const storedEmail = localStorage.getItem('email');
@@ -40,6 +41,7 @@ const Sidebar = () => {
       { path: '/reports', icon: '📑', label: 'Reportes', color: '#fd7e14' },
      { path: '/absences', icon: '🚫', label: 'Ausencias', color: '#ff4d4d' },
   { path: '/visitas', icon: '🪪', label: 'Visitas', color: '#20c997' },
+  { path: '/bitácora ', icon: '📝', label: 'bitácora ', color: '#20c997' },
 
   ];
 
