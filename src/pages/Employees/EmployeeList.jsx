@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { employeeService } from "../../services/employeeService";
 import EmployeeForm from "./EmployeeForm";
 import AlertNotification from "../Areas/AlertNotification";
+//import "./EmployeeList.css"; // Usa los mismos estilos
+
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 

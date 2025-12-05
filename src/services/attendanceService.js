@@ -5,7 +5,21 @@ export const attendanceService = {
 
   delete: (id) => api.delete(`/attendances/${id}`),
 
-  checkIn: (dni) => api.post("/attendances/check-in", { dni }),
+  // ========== CHECK-IN CON GPS ==========
+  checkIn: (dni, latitude, longitude, location) => 
+    api.post("/attendances/check-in", { 
+      dni, 
+      latitude, 
+      longitude, 
+      location 
+    }),
 
-  checkOut: (dni) => api.post("/attendances/check-out", { dni }),
+  // ========== CHECK-OUT CON GPS ==========
+  checkOut: (dni, latitude, longitude, location) => 
+    api.post("/attendances/check-out", { 
+      dni, 
+      latitude, 
+      longitude, 
+      location 
+    }),
 };

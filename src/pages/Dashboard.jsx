@@ -55,28 +55,28 @@ const [stats, setStats] = useState({
         a.date && a.date.startsWith(today)
       );
       // PUNTUALES HOY
-const punctualToday = todayAttendances.filter(a => a.status === "PUNTUAL").length;
+        const punctualToday = todayAttendances.filter(a => a.status === "PUNTUAL").length;
 
-// TARDES HOY
-const lateToday = todayAttendances.filter(a => a.status === "TARDE").length;
+        // TARDES HOY
+        const lateToday = todayAttendances.filter(a => a.status === "TARDE").length;
 
-// NO MARCÓ SALIDA
-const noCheckOutToday = todayAttendances.filter(a => !a.checkOut).length;
+        // NO MARCÓ SALIDA
+        const noCheckOutToday = todayAttendances.filter(a => !a.checkOut).length;
 
-// FALTAS HOY = empleados totales - asistencias totales
-const absentToday = employees.length - todayAttendances.length;
+        // FALTAS HOY = empleados totales - asistencias totales
+        const absentToday = employees.length - todayAttendances.length;
 
 
-setStats({
-  totalEmployees: employees.length,
-  totalAreas: areas.length,
-  totalSchedules: schedules.length,
-  todayAttendances: todayAttendances.length,
-  todayPunctual: punctualToday,
-  todayLate: lateToday,
-  todayAbsent: absentToday,
-  todayNoCheckOut: noCheckOutToday
-});
+        setStats({
+          totalEmployees: employees.length,
+          totalAreas: areas.length,
+          totalSchedules: schedules.length,
+          todayAttendances: todayAttendances.length,
+          todayPunctual: punctualToday,
+          todayLate: lateToday,
+          todayAbsent: absentToday,
+          todayNoCheckOut: noCheckOutToday
+        });
 
       // Procesar datos mensuales (últimos 4 meses)
       const monthlyStats = processMonthlyAttendance(attendances);

@@ -305,17 +305,19 @@ const exportToPDF = () => {
   };
 
   // Función para obtener clase del badge de estado
-  const getStatusBadge = (status) => {
-    if (!status) return <span className="badge bg-secondary">Sin estado</span>;
-    
-    if (status.toUpperCase() === "PUNTUAL") {
-      return <span className="badge bg-success"><i className="bi bi-check-circle-fill me-1"></i>PUNTUAL</span>;
-    } else if (status.toUpperCase() === "TARDE") {
-      return <span className="badge bg-danger"><i className="bi bi-exclamation-triangle-fill me-1"></i>TARDE</span>;
-    }
-    
-    return <span className="badge bg-warning text-dark">{status}</span>;
-  };
+const getStatusBadge = (status) => {
+  if (!status) return <span className="badge bg-secondary">Sin estado</span>;
+  
+  if (status.toUpperCase() === "PUNTUAL") {
+    return <span className="badge bg-success"><i className="bi bi-check-circle-fill me-1"></i>PUNTUAL</span>;
+  } else if (status.toUpperCase() === "TARDE") {
+    return <span className="badge bg-danger"><i className="bi bi-exclamation-triangle-fill me-1"></i>TARDE</span>;
+  } else if (status.toUpperCase() === "FUERA_DE_UBICACION") {
+    return <span className="badge bg-warning text-dark"><i className="bi bi-geo-alt-fill me-1"></i>FUERA DE UBICACIÓN</span>;
+  }
+  
+  return <span className="badge bg-secondary">{status}</span>;
+};
 
   return (
     <div className="attendance-container">
@@ -396,21 +398,23 @@ const exportToPDF = () => {
         <div className="table-card">
           <div className="table-responsive">
             <table className="table attendance-table">
-              <thead>
-                <tr>
-                  <th width="5%">ID</th>
-                  <th width="20%">Empleado</th>
-                  <th width="12%">DNI</th>
-                  <th width="15%">Fecha</th>
-                  <th width="10%">Entrada</th>
-                  <th width="10%">Salida</th>
-                  <th width="8%">Horas</th>
-                  <th width="12%">Estado</th>
-                  <th width="8%">Acciones</th>
-                </tr>
-              </thead>
+<thead>
+  <tr>
+    <th style={{ width: '4%' }}>ID</th>
+    <th style={{ width: '16%' }}>Empleado</th>
+    <th style={{ width: '9%' }}>DNI</th>
+    <th style={{ width: '11%' }}>Fecha</th>
+    <th style={{ width: '8%' }}>Entrada</th>
+    <th style={{ width: '8%' }}>Salida</th>
+    <th style={{ width: '7%' }}>Horas</th>
+    <th style={{ width: '11%' }}>Estado</th>
+    <th style={{ width: '16%' }}>📍 Ubicación</th>
+    <th style={{ width: '7%' }}>Acciones</th>
+  </tr>
+</thead>
 
               <tbody>
+                
                 {filteredAttendance.length === 0 ? (
                   <tr>
                     <td colSpan="9" className="text-center empty-state">
@@ -479,6 +483,38 @@ const exportToPDF = () => {
                       <td>
                         {getStatusBadge(a.status)}
                       </td>
+                       <td>
+      <div className="location-info">
+        {a.checkInLatitude && a.checkInLongitude ? (
+          <>
+            <div className="mb-1">
+              <span className={`badge ${a.locationValid ? 'bg-success' : 'bg-danger'}`}>
+                <i className={`bi ${a.locationValid ? 'bi-geo-alt-fill' : 'bi-exclamation-triangle-fill'} me-1`}></i>
+                {a.locationValid ? 'Válida' : 'Fuera'}
+              </span>
+            </div>
+            <small className="text-muted d-block">
+              <i className="bi bi-pin-map me-1"></i>
+              {a.distanceFromOffice ? `${Math.round(a.distanceFromOffice)}m` : 'N/A'}
+            </small>
+            <a 
+              href={`https://www.google.com/maps?q=${a.checkInLatitude},${a.checkInLongitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm btn-outline-primary mt-1"
+              title="Ver en Google Maps"
+            >
+              <i className="bi bi-map"></i> Mapa
+            </a>
+          </>
+        ) : (
+          <span className="badge bg-secondary">
+            <i className="bi bi-question-circle me-1"></i>
+            Sin GPS
+          </span>
+        )}
+      </div>
+    </td>
                       <td>
                         <button
                           className="btn btn-danger btn-sm btn-delete"

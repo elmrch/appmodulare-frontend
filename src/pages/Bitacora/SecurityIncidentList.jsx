@@ -231,81 +231,80 @@ const SecurityIncidentList = () => {
     showAlert("success", "Excel generado correctamente");
   };
 
-  return (
-    <div className="container mt-4">
-      {alert && (
-        <AlertNotification
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
+return (
+  <div className="attendance-container">
+    {alert && (
+      <AlertNotification
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert(null)}
+      />
+    )}
+
+    {/* Header */}
+    <div className="attendance-header">
+      <div>
+        <h2 className="page-title">
+          <i className="bi bi-exclamation-triangle-fill"></i>
+          Incidentes de Seguridad
+        </h2>
+        <p className="page-subtitle">{filteredIncidents.length} incidentes registrados</p>
+      </div>
+      
+      <div className="header-actions">
+        <button 
+          className="btn btn-success"
+          onClick={exportToExcel}
+          disabled={incidents.length === 0}
+        >
+          <i className="bi bi-file-earmark-excel me-1"></i>
+          Excel
+        </button>
+        <button 
+          className="btn btn-danger"
+          onClick={exportToPDF}
+          disabled={incidents.length === 0}
+        >
+          <i className="bi bi-file-earmark-pdf me-1"></i>
+          PDF
+        </button>
+        <button className="btn btn-primary" onClick={handleNew}>
+          <i className="bi bi-plus-circle me-1"></i>
+          Nuevo Incidente
+        </button>
+      </div>
+    </div>
+
+    {/* Buscador */}
+    <div className="search-box">
+      <i className="bi bi-search"></i>
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Buscar por incidente, severidad o reportado por..."
+        value={searchTerm}
+        onChange={(e) => handleSearch(e.target.value)}
+      />
+      {searchTerm && (
+        <button 
+          className="btn btn-link text-secondary" 
+          type="button"
+          onClick={() => handleSearch("")}
+        >
+          <i className="bi bi-x-circle"></i>
+        </button>
       )}
+    </div>
 
-      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 className="mb-0">🚨 Incidentes de Seguridad</h2>
-        
-        <div className="d-flex gap-2 flex-wrap">
-          <div className="btn-group" role="group">
-            <button 
-              className="btn btn-success btn-sm"
-              onClick={exportToExcel}
-              disabled={incidents.length === 0}
-              title="Exportar a Excel"
-            >
-              📊 Excel
-            </button>
-            <button 
-              className="btn btn-danger btn-sm"
-              onClick={exportToPDF}
-              disabled={incidents.length === 0}
-              title="Exportar a PDF"
-            >
-              📄 PDF
-            </button>
-          </div>
+    {/* Loading */}
+    {loading && <div className="alert alert-info">Cargando incidentes...</div>}
 
-          <button className="btn btn-primary" onClick={handleNew}>
-            ➕ Nuevo Incidente
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <div className="input-group">
-          <span className="input-group-text bg-primary text-white">
-            🔍
-          </span>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar por incidente, severidad o reportado por..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {searchTerm && (
-            <button 
-              className="btn btn-outline-secondary" 
-              type="button"
-              onClick={() => handleSearch("")}
-              title="Limpiar búsqueda"
-            >
-              ✖
-            </button>
-          )}
-        </div>
-        {searchTerm && (
-          <small className="text-muted">
-            Mostrando {filteredIncidents.length} de {incidents.length} incidentes
-          </small>
-        )}
-      </div>
-
-      {loading && <div className="alert alert-info">Cargando incidentes...</div>}
-
-      {!loading && (
+    {/* Tabla */}
+    {!loading && (
+      <div className="table-card">
         <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead className="table-dark">
+          <table className="table attendance-table">
+            <thead>
               <tr>
                 <th>ID</th>
                 <th>Título</th>
@@ -321,13 +320,13 @@ const SecurityIncidentList = () => {
               {filteredIncidents.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center">
-                    {searchTerm ? "No se encontraron incidentes con ese criterio" : "No hay incidentes registrados"}
+                    {searchTerm ? "No se encontraron incidentes" : "No hay incidentes registrados"}
                   </td>
                 </tr>
               ) : (
                 filteredIncidents.map((inc) => (
                   <tr key={inc.id}>
-                    <td>{inc.id}</td>
+                    <td>#{inc.id}</td>
                     <td><strong>{inc.title}</strong></td>
                     <td>{formatDateTime(inc.dateTime)}</td>
                     <td>
@@ -337,20 +336,18 @@ const SecurityIncidentList = () => {
                     </td>
                     <td>{inc.incident}</td>
                     <td>{inc.reportedBy || "—"}</td>
-                    <td className="text-end" style={{ whiteSpace: "nowrap" }}>
+                    <td>
                       <button
-                        className="btn btn-warning btn-sm me-2 px-2 py-1"
+                        className="btn btn-warning btn-sm me-2"
                         onClick={() => handleEdit(inc)}
-                        style={{ fontSize: "0.75rem" }}
                       >
-                        ✏️ Editar
+                        <i className="bi bi-pencil"></i>
                       </button>
                       <button
-                        className="btn btn-danger btn-sm px-2 py-1"
+                        className="btn btn-danger btn-sm"
                         onClick={() => openDeleteModal(inc)}
-                        style={{ fontSize: "0.75rem" }}
                       >
-                        🗑️ Eliminar
+                        <i className="bi bi-trash"></i>
                       </button>
                     </td>
                   </tr>
@@ -359,45 +356,51 @@ const SecurityIncidentList = () => {
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
-      {showModal && (
-        <SecurityIncidentForm
-          incident={selectedIncident}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
+    {/* Modal Form */}
+    {showModal && (
+      <SecurityIncidentForm
+        incident={selectedIncident}
+        onClose={() => setShowModal(false)}
+        onSave={handleSave}
+      />
+    )}
 
-      {showDeleteModal && incidentToDelete && (
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">⚠️ Confirmar Eliminación</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
-              </div>
-              <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar este incidente?</p>
-                <p className="fs-6 fw-bold text-danger mb-2">
-                  {incidentToDelete.incident}
-                </p>
-                <p className="text-muted small">Esta acción no se puede deshacer</p>
-              </div>
-              <div className="modal-footer justify-content-center">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                  Cancelar
-                </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Sí, Eliminar
-                </button>
-              </div>
+    {/* Modal Delete */}
+    {showDeleteModal && incidentToDelete && (
+      <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
+        <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content">
+            <div className="modal-header bg-danger text-white">
+              <h5 className="modal-title">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                Confirmar Eliminación
+              </h5>
+              <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+            </div>
+            <div className="modal-body text-center py-4">
+              <p className="mb-2">¿Estás seguro de eliminar este incidente?</p>
+              <p className="fs-6 fw-bold text-danger mb-2">
+                {incidentToDelete.incident}
+              </p>
+              <p className="text-muted small">Esta acción no se puede deshacer</p>
+            </div>
+            <div className="modal-footer justify-content-center">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                Sí, Eliminar
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 };
 
 export default SecurityIncidentList;

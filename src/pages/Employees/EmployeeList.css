@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
+
+
 /* ========== CONTENEDOR PRINCIPAL ========== */
 .employee-wrapper {
   min-height: 100vh;
@@ -825,3 +827,4 @@ input.form-control-white:not([name="photoUrl"]) {
   cursor: not-allowed;
   transform: none !important;
 }
+

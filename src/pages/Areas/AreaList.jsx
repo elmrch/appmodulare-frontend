@@ -69,28 +69,42 @@ const AreaList = () => {
     loadAreas();
   };
 
-  return (
-    <div className="area-list">
-      {alert && (
-        <AlertNotification
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
-      )}
+return (
+  <div className="attendance-container">
+    {alert && (
+      <AlertNotification
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert(null)}
+      />
+    )}
 
-      <div className="page-header">
-        <h1>🏢 Gestión de Áreas</h1>
+    {/* Header */}
+    <div className="attendance-header">
+      <div>
+        <h2 className="page-title">
+          <i className="bi bi-building-fill"></i>
+          Gestión de Áreas
+        </h2>
+        <p className="page-subtitle">{areas.length} áreas registradas</p>
+      </div>
+      
+      <div className="header-actions">
         <button className="btn btn-primary" onClick={handleNew}>
-          ➕ Nueva Área
+          <i className="bi bi-plus-circle me-1"></i>
+          Nueva Área
         </button>
       </div>
+    </div>
 
-      {loading ? (
-        <div className="loading">Cargando...</div>
-      ) : (
-        <div className="table-container">
-          <table className="table">
+    {/* Loading */}
+    {loading && <div className="alert alert-info">Cargando áreas...</div>}
+
+    {/* Tabla */}
+    {!loading && (
+      <div className="table-card">
+        <div className="table-responsive">
+          <table className="table attendance-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -103,29 +117,29 @@ const AreaList = () => {
             <tbody>
               {areas.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{textAlign: 'center'}}>
+                  <td colSpan="5" className="text-center">
                     No hay áreas registradas
                   </td>
                 </tr>
               ) : (
                 areas.map((area) => (
                   <tr key={area.id}>
-                    <td>{area.id}</td>
+                    <td>#{area.id}</td>
                     <td><strong>{area.name}</strong></td>
                     <td>{area.description}</td>
                     <td>{new Date(area.createdAt).toLocaleDateString()}</td>
                     <td>
                       <button 
-                        className="btn btn-edit" 
+                        className="btn btn-warning btn-sm me-2"
                         onClick={() => handleEdit(area)}
                       >
-                        ✏️ Editar
+                        <i className="bi bi-pencil"></i>
                       </button>
                       <button 
-                        className="btn btn-delete" 
+                        className="btn btn-danger btn-sm"
                         onClick={() => openDeleteModal(area)}
                       >
-                        🗑️ Eliminar
+                        <i className="bi bi-trash"></i>
                       </button>
                     </td>
                   </tr>
@@ -134,44 +148,49 @@ const AreaList = () => {
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
-      {showModal && (
-        <AreaForm 
-          area={selectedArea} 
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
+    {/* Modal Form */}
+    {showModal && (
+      <AreaForm 
+        area={selectedArea} 
+        onClose={() => setShowModal(false)}
+        onSave={handleSave}
+      />
+    )}
 
-      {/* Modal de confirmación Bootstrap */}
-      {showDeleteModal && areaToDelete && (
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">⚠️ Confirmar Eliminación</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
-              </div>
-              <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar esta área?</p>
-                <p className="fs-5 fw-bold text-danger mb-2">{areaToDelete.name}</p>
-                <p className="text-muted small">Esta acción no se puede deshacer</p>
-              </div>
-              <div className="modal-footer justify-content-center">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                  Cancelar
-                </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Sí, Eliminar
-                </button>
-              </div>
+    {/* Modal Delete */}
+    {showDeleteModal && areaToDelete && (
+      <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
+        <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content">
+            <div className="modal-header bg-danger text-white">
+              <h5 className="modal-title">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                Confirmar Eliminación
+              </h5>
+              <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+            </div>
+            <div className="modal-body text-center py-4">
+              <p className="mb-2">¿Estás seguro de eliminar esta área?</p>
+              <p className="fs-5 fw-bold text-danger mb-2">{areaToDelete.name}</p>
+              <p className="text-muted small">Esta acción no se puede deshacer</p>
+            </div>
+            <div className="modal-footer justify-content-center">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                Sí, Eliminar
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 };
 
 export default AreaList;

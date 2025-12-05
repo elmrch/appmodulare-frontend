@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { scheduleService } from "../../services/scheduleService";
 import ScheduleForm from "./ScheduleForm";
+import "./ScheduleList.css"
 
 const ScheduleList = () => {
   const [schedules, setSchedules] = useState([]);
@@ -54,83 +55,96 @@ const ScheduleList = () => {
     loadSchedules();
   };
 
-  return (
-    <div className="container mt-4">
-
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>⏰ Gestión de Horarios</h2>
+return (
+  <div className="attendance-container">
+    {/* Header */}
+    <div className="attendance-header">
+      <div>
+        <h2 className="page-title">
+          <i className="bi bi-clock-fill"></i>
+          Gestión de Horarios
+        </h2>
+        <p className="page-subtitle">{schedules.length} horarios registrados</p>
+      </div>
+      
+      <div className="header-actions">
         <button className="btn btn-primary" onClick={handleNew}>
-          ➕ Nuevo Horario
+          <i className="bi bi-plus-circle me-1"></i>
+          Nuevo Horario
         </button>
       </div>
+    </div>
 
-      {/* Loading */}
-      {loading && <div className="alert alert-info">Cargando horarios...</div>}
+    {/* Loading */}
+    {loading && <div className="alert alert-info">Cargando horarios...</div>}
 
-      {/* Table */}
-      {!loading && (
-        <table className="table table-striped table-bordered">
-          <thead className="table-dark">
-            <tr>
-              <th>ID</th>
-              <th>Inicio</th>
-              <th>Fin</th>
-              <th>Creado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {schedules.length === 0 ? (
+    {/* Table */}
+    {!loading && (
+      <div className="table-card">
+        <div className="table-responsive">
+          <table className="table attendance-table">
+            <thead>
               <tr>
-                <td colSpan="5" className="text-center">
-                  No hay horarios registrados
-                </td>
+                <th>ID</th>
+                <th>INICIO</th>
+                <th>FIN</th>
+                <th>CREADO</th>
+                <th>ACCIONES</th>
               </tr>
-            ) : (
-              schedules.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.id}</td>
-                  <td>{s.startTime}</td>
-                  <td>{s.endTime}</td>
-                  <td>
-                    {s.createdAt
-                      ? new Date(s.createdAt).toLocaleDateString()
-                      : ""}
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => handleEdit(s)}
-                    >
-                      ✏️ Editar
-                    </button>
+            </thead>
 
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(s.id)}
-                    >
-                      🗑️ Eliminar
-                    </button>
+            <tbody>
+              {schedules.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center">
+                    No hay horarios registrados
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+              ) : (
+                schedules.map((s) => (
+                  <tr key={s.id}>
+                    <td>#{s.id}</td>
+                    <td>{s.startTime}</td>
+                    <td>{s.endTime}</td>
+                    <td>
+                      {s.createdAt
+                        ? new Date(s.createdAt).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm me-2"
+                        onClick={() => handleEdit(s)}
+                      >
+                        <i className="bi bi-pencil"></i>
+                      </button>
 
-      {/* Modal */}
-      {showModal && (
-        <ScheduleForm
-          schedule={selectedSchedule}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
-    </div>
-  );
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(s.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    {/* Modal */}
+    {showModal && (
+      <ScheduleForm
+        schedule={selectedSchedule}
+        onClose={() => setShowModal(false)}
+        onSave={handleSave}
+      />
+    )}
+  </div>
+);
 };
 
 export default ScheduleList;

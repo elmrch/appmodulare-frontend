@@ -312,3 +312,115 @@
 
 
 
+
+
+/*
+
+ Bordes para todas las tablas 
+.attendance-table td,
+.attendance-table th {
+  border: 1px solid #dee2e6 !important;
+  vertical-align: middle;
+  padding: 1rem 0.75rem !important;
+  white-space: nowrap;
+}
+
+.attendance-table tbody tr {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.attendance-table thead th {
+  border-bottom: 2px solid #495057 !important;
+}
+
+/* Espaciado extra para columnas Horas y Estado 
+.attendance-table td:nth-child(7), /* Horas 
+.attendance-table td:nth-child(8) { /* Estado 
+  padding-left: 1.2rem !important;
+  padding-right: 1.2rem !important;
+}
+
+/* Mejorar badges para que no se peguen 
+.attendance-table .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.8rem;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.attendance-table .time-badge {
+  min-width: fit-content;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Ubicación responsive 
+.location-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+/* RESPONSIVE MEJORADO 
+@media (max-width: 1400px) {
+  .attendance-table {
+    font-size: 0.85rem;
+  }
+  
+  .attendance-table td,
+  .attendance-table th {
+    padding: 0.75rem 0.5rem !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  /* Ocultar columna de ubicación en tablets 
+  .attendance-table th:nth-child(9),
+  .attendance-table td:nth-child(9) {
+    display: none;
+  }
+}
+
+@media (max-width: 992px) {
+  /* Ocultar más columnas en tablets pequeños 
+  .attendance-table th:nth-child(7), /* Horas 
+  .attendance-table td:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .attendance-table {
+    font-size: 0.8rem;
+  }
+  
+  /* Ocultar DNI 
+  .attendance-table th:nth-child(3),
+  .attendance-table td:nth-child(3) {
+    display: none;
+  }
+  
+  /* Ocultar Salida 
+  .attendance-table th:nth-child(6),
+  .attendance-table td:nth-child(6) {
+    display: none;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .attendance-table th:nth-child(4), /* Fecha 
+  .attendance-table td:nth-child(4) {
+    display: none;
+  }
+  
+  .employee-info i {
+    display: none;
+  }
+}*/
