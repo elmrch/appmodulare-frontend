@@ -4,7 +4,6 @@ import SecurityIncidentForm from "./SecurityIncidentForm";
 import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
-import './bitacora.css';
 
 const formatDateSafe = (dateString) => {
   if (!dateString) return "—";
@@ -127,15 +126,21 @@ const SecurityIncidentList = () => {
 
   const getSeverityBadge = (severity) => {
     const badges = {
-      HIGH: "bg-danger",
-      MEDIUM: "bg-warning text-dark",
-      LOW: "bg-success"
+      HIGH: { class: "bg-danger", icon: "bi-exclamation-octagon-fill", text: "ALTA" },
+      MEDIUM: { class: "bg-warning text-dark", icon: "bi-exclamation-triangle-fill", text: "MEDIA" },
+      LOW: { class: "bg-success", icon: "bi-info-circle-fill", text: "BAJA" }
     };
-    return badges[severity] || "bg-secondary";
+    return badges[severity] || { class: "bg-secondary", icon: "bi-question-circle", text: severity };
   };
 
   const exportToPDF = () => {
     const dataToExport = filteredIncidents.length > 0 ? filteredIncidents : incidents;
+    
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
     const doc = new jsPDF('l', 'mm', 'a4');
     
     doc.setFontSize(20);
@@ -207,8 +212,14 @@ const SecurityIncidentList = () => {
   const exportToExcel = () => {
     const dataToExport = filteredIncidents.length > 0 ? filteredIncidents : incidents;
     
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
     const excelData = dataToExport.map(inc => ({
       'ID': inc.id,
+      'Título': inc.title,
       'Fecha y Hora': formatDateTime(inc.dateTime),
       'Severidad': inc.severity,
       'Incidente': inc.incident,
@@ -220,6 +231,7 @@ const SecurityIncidentList = () => {
 
     const colWidths = [
       { wch: 5 },
+      { wch: 25 },
       { wch: 20 },
       { wch: 12 },
       { wch: 50 },
@@ -232,176 +244,283 @@ const SecurityIncidentList = () => {
     showAlert("success", "Excel generado correctamente");
   };
 
-return (
-  <div className="attendance-container">
-    {alert && (
-      <AlertNotification
-        type={alert.type}
-        message={alert.message}
-        onClose={() => setAlert(null)}
-      />
-    )}
-
-    {/* Header */}
-    <div className="attendance-header">
-      <div>
-        <h2 className="page-title">
-          <i className="bi bi-exclamation-triangle-fill"></i>
-          Incidentes de Seguridad
-        </h2>
-        <p className="page-subtitle">{filteredIncidents.length} incidentes registrados</p>
-      </div>
-      
-      <div className="header-actions">
-        <button 
-          className="btn btn-success"
-          onClick={exportToExcel}
-          disabled={incidents.length === 0}
-        >
-          <i className="bi bi-file-earmark-excel me-1"></i>
-          Excel
-        </button>
-        <button 
-          className="btn btn-danger"
-          onClick={exportToPDF}
-          disabled={incidents.length === 0}
-        >
-          <i className="bi bi-file-earmark-pdf me-1"></i>
-          PDF
-        </button>
-        <button className="btn btn-primary" onClick={handleNew}>
-          <i className="bi bi-plus-circle me-1"></i>
-          Nuevo Incidente
-        </button>
-      </div>
-    </div>
-
-    {/* Buscador */}
-    <div className="search-box">
-      <i className="bi bi-search"></i>
-      <input
-        type="text"
-        className="form-control"
-        placeholder="Buscar por incidente, severidad o reportado por..."
-        value={searchTerm}
-        onChange={(e) => handleSearch(e.target.value)}
-      />
-      {searchTerm && (
-        <button 
-          className="btn btn-link text-secondary" 
-          type="button"
-          onClick={() => handleSearch("")}
-        >
-          <i className="bi bi-x-circle"></i>
-        </button>
-      )}
-    </div>
-
-    {/* Loading */}
-    {loading && <div className="alert alert-info">Cargando incidentes...</div>}
-
-    {/* Tabla */}
-    {!loading && (
-      <div className="table-card">
-        <div className="table-responsive">
-          <table className="table attendance-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Fecha y Hora</th>
-                <th>Severidad</th>
-                <th>Incidente</th>
-                <th>Reportado Por</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredIncidents.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center">
-                    {searchTerm ? "No se encontraron incidentes" : "No hay incidentes registrados"}
-                  </td>
-                </tr>
-              ) : (
-                filteredIncidents.map((inc) => (
-                  <tr key={inc.id}>
-                    <td>#{inc.id}</td>
-                    <td><strong>{inc.title}</strong></td>
-                    <td>{formatDateTime(inc.dateTime)}</td>
-                    <td>
-                      <span className={`badge ${getSeverityBadge(inc.severity)}`}>
-                        {inc.severity}
-                      </span>
-                    </td>
-                    <td>{inc.incident}</td>
-                    <td>{inc.reportedBy || "—"}</td>
-                    <td>
-                      <button
-                        className="btn btn-warning btn-sm me-2"
-                        onClick={() => handleEdit(inc)}
-                      >
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => openDeleteModal(inc)}
-                      >
-                        <i className="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+  return (
+    <div className="container-fluid px-4 py-4">
+      {/* Alert */}
+      {alert && (
+        <div className="row mb-3">
+          <div className="col-12">
+            <AlertNotification
+              type={alert.type}
+              message={alert.message}
+              onClose={() => setAlert(null)}
+            />
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Modal Form */}
-    {showModal && (
-      <SecurityIncidentForm
-        incident={selectedIncident}
-        onClose={() => setShowModal(false)}
-        onSave={handleSave}
-      />
-    )}
-
-    {/* Modal Delete */}
-    {showDeleteModal && incidentToDelete && (
-      <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
-        <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-content">
-            <div className="modal-header bg-danger text-white">
-              <h5 className="modal-title">
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                Confirmar Eliminación
-              </h5>
-              <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
-            </div>
-            <div className="modal-body text-center py-4">
-              <p className="mb-2">¿Estás seguro de eliminar este incidente?</p>
-              <p className="fs-6 fw-bold text-danger mb-2">
-                {incidentToDelete.incident}
+      {/* Header */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+              <h2 className="mb-2 fw-bold">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                Incidentes de Seguridad
+              </h2>
+              <p className="text-muted mb-0">
+                {filteredIncidents.length} incidentes registrados
               </p>
-              <p className="text-muted small">Esta acción no se puede deshacer</p>
             </div>
-            <div className="modal-footer justify-content-center">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                Cancelar
+
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-success d-flex align-items-center"
+                onClick={exportToExcel}
+                disabled={incidents.length === 0}
+              >
+                <i className="bi bi-file-earmark-excel me-2"></i>
+                Exportar Excel
               </button>
-              <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                Sí, Eliminar
+
+              <button
+                className="btn btn-danger d-flex align-items-center"
+                onClick={exportToPDF}
+                disabled={incidents.length === 0}
+              >
+                <i className="bi bi-file-earmark-pdf me-2"></i>
+                Exportar PDF
               </button>
             </div>
           </div>
         </div>
       </div>
-    )}
-  </div>
-);
+
+      {/* Loading */}
+      {loading && (
+        <div className="row">
+          <div className="col-12">
+            <div className="alert alert-info d-flex align-items-center" role="alert">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Cargando...</span>
+              </div>
+              Cargando incidentes...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loading && (
+        <div className="row">
+          <div className="col-12">
+            <div className="card shadow-sm border border-secondary">
+              <div className="card-header bg-secondary text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 className="mb-0 d-flex align-items-center fw-bold">
+                  Gestión de Incidentes
+                </h5>
+                <div className="d-flex align-items-center gap-2">
+                  <div className="position-relative" style={{ minWidth: "300px" }}>
+                    <i
+                      className="bi bi-search position-absolute"
+                      style={{
+                        left: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#6c757d",
+                      }}
+                    ></i>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm ps-5"
+                      placeholder="Buscar por incidente, severidad o reportado por..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      style={{ paddingRight: searchTerm ? "35px" : "10px" }}
+                    />
+                    {searchTerm && (
+                      <button
+                        className="btn btn-link position-absolute p-0"
+                        style={{
+                          right: "10px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "#6c757d",
+                        }}
+                        onClick={() => handleSearch("")}
+                      >
+                        <i className="bi bi-x-circle"></i>
+                      </button>
+                    )}
+                  </div>
+                  <button className="btn btn-primary btn-sm d-flex align-items-center" onClick={handleNew}>
+                    <i className="bi bi-plus-circle me-2"></i>
+                    Nuevo
+                  </button>
+                </div>
+              </div>
+
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-hover table-bordered align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-3 text-muted">ID</th>
+                        <th className="py-3 text-muted">Título</th>
+                        <th className="py-3 d-none d-lg-table-cell text-muted text-center">Fecha y Hora</th>
+                        <th className="py-3 text-muted text-center">Severidad</th>
+                        <th className="py-3 d-none d-md-table-cell text-muted">Incidente</th>
+                        <th className="py-3 d-none d-xl-table-cell text-muted">Reportado Por</th>
+                        <th className="py-3 text-end pe-4 text-muted">Acciones</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredIncidents.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-5 text-muted">
+                            <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                            {searchTerm
+                              ? "No se encontraron coincidencias"
+                              : "No hay incidentes registrados"}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredIncidents.map((inc) => {
+                          const severityInfo = getSeverityBadge(inc.severity);
+                          return (
+                            <tr key={inc.id}>
+                              <td className="px-4">
+                                <span className="badge bg-secondary">#{inc.id}</span>
+                              </td>
+                              <td>
+                                <strong className="text-dark">{inc.title}</strong>
+                              </td>
+                              <td className="text-center d-none d-lg-table-cell">
+                                <span className="text-muted small">
+                                  {formatDateTime(inc.dateTime)}
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                <span className={`badge ${severityInfo.class}`}>
+                                  <i className={`bi ${severityInfo.icon} me-1`}></i>
+                                  {severityInfo.text}
+                                </span>
+                              </td>
+                              <td className="d-none d-md-table-cell">
+                                {inc.incident}
+                              </td>
+                              <td className="d-none d-xl-table-cell">
+                                {inc.reportedBy || "—"}
+                              </td>
+                              <td className="text-end pe-4">
+                                <div className="d-flex justify-content-end gap-2">
+                                  <button
+                                    className="btn btn-warning btn-sm"
+                                    onClick={() => handleEdit(inc)}
+                                    title="Editar"
+                                  >
+                                    <i className="bi bi-pencil"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => openDeleteModal(inc)}
+                                    title="Eliminar"
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Formulario de creación/edición */}
+      {showModal && (
+        <div className="row mb-4 mt-4">
+          <div className="col-12">
+            <div className="card shadow-sm border border-primary">
+              <div className="card-header bg-primary text-white py-3">
+                <h5 className="mb-0 d-flex align-items-center fw-bold">
+                  <i className={`bi ${selectedIncident ? 'bi-pencil-square' : 'bi-plus-circle'} me-2`}></i>
+                  {selectedIncident ? 'Editar Incidente' : 'Nuevo Incidente'}
+                </h5>
+              </div>
+              <div className="card-body">
+                <SecurityIncidentForm
+                  incident={selectedIncident}
+                  onClose={() => {
+                    setShowModal(false);
+                    setSelectedIncident(null);
+                  }}
+                  onSave={handleSave}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Delete */}
+      {showDeleteModal && incidentToDelete && (
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={() => setShowDeleteModal(false)}
+          tabIndex="-1"
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header bg-danger text-white">
+                <h5 className="modal-title d-flex align-items-center">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Confirmar Eliminación
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body text-center py-4">
+                <p className="mb-2">¿Estás seguro de eliminar este incidente?</p>
+                <p className="fs-5 fw-bold text-danger mb-2">
+                  {incidentToDelete.incident}
+                </p>
+                <p className="text-muted small mb-0">Esta acción no se puede deshacer</p>
+              </div>
+              <div className="modal-footer justify-content-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDelete}
+                >
+                  <i className="bi bi-trash me-1"></i>
+                  Sí, Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SecurityIncidentList;

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { areaService } from '../../services/areaService';
-import './AreaForm.css';
 
 const AreaForm = ({ area, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: ''
+  });
+  const [touched, setTouched] = useState({
+    name: true,  // Cambiado a true
+    description: true  // Cambiado a true
   });
 
   useEffect(() => {
@@ -30,59 +33,71 @@ const AreaForm = ({ area, onClose, onSave }) => {
     try {
       if (area) {
         await areaService.update(area.id, formData);
-        onSave(true); // true = es edición
+        onSave(true);
       } else {
         await areaService.create(formData);
-        onSave(false); // false = es creación
+        onSave(false);
       }
     } catch (error) {
       console.error('Error al guardar área:', error);
     }
   };
 
+  // Función para determinar la clase de validación
+  const getValidationClass = (fieldName, isRequired = false) => {
+    if (isRequired) {
+      return formData[fieldName].trim() ? 'is-valid' : 'is-invalid';
+    }
+    return formData[fieldName].trim() ? 'is-valid' : '';
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{area ? '✏️ Editar Área' : '➕ Nueva Área'}</h2>
-          <button className="close-btn" onClick={onClose}>✖</button>
+    <form onSubmit={handleSubmit}>
+      <div className="row">
+        <div className="col-md-6 mb-3">
+          <label className="form-label fw-semibold">Nombre *</label>
+          <input
+            type="text"
+            name="name"
+            className={`form-control ${getValidationClass('name', true)}`}
+            value={formData.name}
+            onChange={handleChange}
+            required
+            placeholder="Ej: Ventas, Administración, TI"
+          />
+          {!formData.name.trim() && (
+            <div className="invalid-feedback d-block">
+              El nombre es obligatorio
+            </div>
+          )}
+          
         </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Nombre *</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="Ej: Ventas, Administración, TI"
-            />
-          </div>
 
-          <div className="form-group">
-            <label>Descripción</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Descripción del área..."
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="button" className="btn btn-cancel" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              {area ? 'Actualizar' : 'Guardar'}
-            </button>
-          </div>
-        </form>
+        <div className="col-md-6 mb-3">
+          <label className="form-label fw-semibold">Descripción</label>
+          <input
+            type="text"
+            name="description"
+            className={`form-control ${getValidationClass('description', true)}`}
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Descripción breve del área"
+          />
+  
+        </div>
       </div>
-    </div>
+
+      <div className="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <i className="bi bi-x-circle me-1"></i>
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-success">
+          <i className={`bi ${area ? 'bi-check-circle' : 'bi-save'} me-1`}></i>
+          {area ? 'Actualizar' : 'Guardar'}
+        </button>
+      </div>
+    </form>
   );
 };
 

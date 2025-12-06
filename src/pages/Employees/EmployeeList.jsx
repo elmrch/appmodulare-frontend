@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { employeeService } from "../../services/employeeService";
 import EmployeeForm from "./EmployeeForm";
 import AlertNotification from "../Areas/AlertNotification";
-//import "./EmployeeList.css"; // Usa los mismos estilos
-
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
@@ -11,15 +9,13 @@ import * as XLSX from "xlsx";
 const formatDateSafe = (dateString) => {
   if (!dateString) return "—";
   
-  // Si la fecha viene en formato YYYY-MM-DD
   if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
     const [year, month, day] = dateString.split('T')[0].split('-');
     return `${day}/${month}/${year}`;
   }
   
-  // Fallback: usar Date pero con precaución
   try {
-    const date = new Date(dateString + 'T00:00:00'); // Forzar medianoche local
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('es-PE');
   } catch {
     return "—";
@@ -167,7 +163,6 @@ const EmployeeList = () => {
       doc.text(`Sueldo: ${e.salary ? "S/ " + parseFloat(e.salary).toFixed(2) : "—"}`, leftMargin + 150, yPos + lineHeight);
       
       doc.text(`Horario: ${e.schedule ? `${e.schedule.startTime} - ${e.schedule.endTime}` : "—"}`, leftMargin + 220, yPos);
-      // ✅ Usar formatDateSafe para el PDF
       doc.text(`Ingreso: ${formatDateSafe(e.hireDate)}`, leftMargin + 220, yPos + lineHeight);
       
       yPos += lineHeight * 2 + 5;
@@ -210,7 +205,6 @@ const EmployeeList = () => {
       'Sueldo': e.salary || '',
       'Horario Inicio': e.schedule ? e.schedule.startTime : '',
       'Horario Fin': e.schedule ? e.schedule.endTime : '',
-      // ✅ Guardar fecha en formato legible en Excel
       'Fecha Ingreso': formatDateSafe(e.hireDate)
     }));
 
@@ -218,18 +212,9 @@ const EmployeeList = () => {
     const ws = XLSX.utils.json_to_sheet(excelData);
 
     const colWidths = [
-      { wch: 5 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 25 },
-      { wch: 12 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 15 }
+      { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
+      { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 15 }
     ];
     ws['!cols'] = colWidths;
 
@@ -239,207 +224,293 @@ const EmployeeList = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid px-4 py-4">
+      {/* Alert */}
       {alert && (
-        <AlertNotification
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
+        <div className="row mb-3">
+          <div className="col-12">
+            <AlertNotification
+              type={alert.type}
+              message={alert.message}
+              onClose={() => setAlert(null)}
+            />
+          </div>
+        </div>
       )}
 
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 className="mb-0">👨‍💼 Gestión de Empleados</h2>
-        
-        <div className="d-flex gap-2 flex-wrap">
-          <div className="btn-group" role="group">
-            <button 
-              className="btn btn-success btn-sm"
-              onClick={exportToExcel}
-              disabled={employees.length === 0}
-              title="Exportar a Excel"
-            >
-              📊 Excel
-            </button>
-            <button 
-              className="btn btn-danger btn-sm"
-              onClick={exportToPDF}
-              disabled={employees.length === 0}
-              title="Exportar a PDF"
-            >
-              📄 PDF
-            </button>
-          </div>
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+              <h2 className="mb-2 fw-bold">
+                <i className="bi bi-people-fill me-2"></i>
+                Gestión de Empleados
+              </h2>
+              <p className="text-muted mb-0">{employees.length} empleados registrados</p>
+            </div>
+            
+            <div className="d-flex gap-2 flex-wrap">
+              <div className="btn-group" role="group">
+                <button 
+                  className="btn btn-success btn-sm"
+                  onClick={exportToExcel}
+                  disabled={employees.length === 0}
+                  title="Exportar a Excel"
+                >
+                  <i className="bi bi-file-earmark-excel me-1"></i>
+                  Excel
+                </button>
+                <button 
+                  className="btn btn-danger btn-sm"
+                  onClick={exportToPDF}
+                  disabled={employees.length === 0}
+                  title="Exportar a PDF"
+                >
+                  <i className="bi bi-file-earmark-pdf me-1"></i>
+                  PDF
+                </button>
+              </div>
 
-          <button className="btn btn-primary" onClick={handleNew}>
-            ➕ Nuevo Empleado
-          </button>
+              <button className="btn btn-primary d-flex align-items-center" onClick={handleNew}>
+                <i className="bi bi-plus-circle me-2"></i>
+                Nuevo Empleado
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Buscador */}
-      <div className="mb-3">
-        <div className="input-group">
-          <span className="input-group-text bg-primary text-white">
-            🔍
-          </span>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar por nombre o DNI..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="input-group">
+            <span className="input-group-text bg-primary text-white">
+              <i className="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar por nombre o DNI..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="btn btn-outline-secondary" 
+                type="button"
+                onClick={() => handleSearch("")}
+                title="Limpiar búsqueda"
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            )}
+          </div>
           {searchTerm && (
-            <button 
-              className="btn btn-outline-secondary" 
-              type="button"
-              onClick={() => handleSearch("")}
-              title="Limpiar búsqueda"
-            >
-              ✖
-            </button>
+            <small className="text-muted mt-2 d-block">
+              Mostrando {filteredEmployees.length} de {employees.length} empleados
+            </small>
           )}
         </div>
-        {searchTerm && (
-          <small className="text-muted">
-            Mostrando {filteredEmployees.length} de {employees.length} empleados
-          </small>
-        )}
       </div>
 
-  {loading && <div className="alert alert-info">Cargando empleados...</div>}
 
-      {/* TABLA IGUAL QUE EN ÁREAS */}
-      {!loading && (
-        <div className="table-card">
-          <div className="table-responsive">
-            <table className="table attendance-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre Completo</th>
-                  <th>DNI</th>
-                  <th>Área</th>
-                  <th>Puesto</th>
-                  <th>Ingreso</th>
-                  <th>Horario</th> 
 
-                  <th>Foto</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredEmployees.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="text-center">
-                      No hay empleados registrados
-                    </td>
-                  </tr>
-                ) : (
-                  filteredEmployees.map((e) => (
-                    <tr key={e.id}>
-                      <td>#{e.id}</td>
-                      <td><strong>{e.firstName} {e.lastName}</strong></td>
-                      <td>{e.dni}</td>
-                      <td>{e.area?.name || "—"}</td>
-                      <td>{e.position || "—"}</td>
-                      <td>{formatDateSafe(e.hireDate)}</td>
-                                    <td>
-                  {e.schedule
-                    ? `${e.schedule.startTime} - ${e.schedule.endTime}`
-                    : "—"}
-                </td>
-                      <td>
-                        {e.photoUrl ? (
-                          <img
-                            src={e.photoUrl}
-                            alt="foto"
-                            className="rounded-circle"
-                            style={{ width: "45px", height: "45px", objectFit: "cover" }}
-                          />
-                        ) : "—"}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-warning btn-sm me-2"
-                          onClick={() => handleEdit(e)}
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
-
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => openDeleteModal(e)}
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL FORM */}
-      {showModal && (
-        <EmployeeForm
-          employee={selectedEmployee}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
-
-      {/* MODAL DELETE */}
-      {showDeleteModal && employeeToDelete && (
-        <div className="modal fade show d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          onClick={() => setShowDeleteModal(false)}
-        >
-          <div className="modal-dialog modal-dialog-centered"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  Confirmar Eliminación
-                </h5>
-                <button className="btn-close btn-close-white"
-                  onClick={() => setShowDeleteModal(false)}
-                ></button>
+      {/* Loading */}
+      {loading && (
+        <div className="row">
+          <div className="col-12">
+            <div className="alert alert-info d-flex align-items-center" role="alert">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Cargando...</span>
               </div>
-
-              <div className="modal-body text-center py-4">
-                <p>¿Eliminar empleado?</p>
-                <p className="fw-bold text-danger">
-                  {employeeToDelete.firstName} {employeeToDelete.lastName}
-                </p>
-                <p className="text-muted small">Esta acción no se puede deshacer</p>
-              </div>
-
-              <div className="modal-footer justify-content-center">
-                <button className="btn btn-secondary"
-                  onClick={() => setShowDeleteModal(false)}>
-                  Cancelar
-                </button>
-
-                <button className="btn btn-danger" onClick={handleDelete}>
-                  Sí, eliminar
-                </button>
-              </div>
-
+              Cargando empleados...
             </div>
           </div>
         </div>
       )}
 
+      {/* Tabla */}
+      {!loading && (
+        <div className="row">
+          <div className="col-12">
+            <div className="card shadow-sm border border-secondary">
+              <div className="card-header bg-secondary text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 className="mb-0 d-flex align-items-center fw-bold">
+                  <i className="bi bi-table me-2"></i>
+                  Lista de Empleados
+                </h5>
+                <div className="d-flex gap-2">
+                  <button className="btn btn-primary btn-sm d-flex align-items-center" onClick={handleNew}>
+                    <i className="bi bi-plus-circle me-2"></i>
+                    Nuevo Empleado
+                  </button>
+                </div>
+              </div>
+              
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-hover table-bordered align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-3 text-muted">ID</th>
+                        <th className="py-3 text-muted">Nombre Completo</th>
+                        <th className="py-3 text-muted">DNI</th>
+                        <th className="py-3 d-none d-md-table-cell text-muted">Área</th>
+                        <th className="py-3 d-none d-lg-table-cell text-muted">Puesto</th>
+                        <th className="py-3 d-none d-lg-table-cell text-muted">Horario</th>
+                        <th className="py-3 d-none d-xl-table-cell text-muted">Ingreso</th>
+                        <th className="py-3 text-center text-muted">Foto</th>
+                        <th className="py-3 text-end pe-4 text-muted">Acciones</th>
+                      </tr>
+                    </thead>
+                    
+                    <tbody>
+                      {filteredEmployees.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="text-center py-5 text-muted">
+                            <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                            {searchTerm ? 'No se encontraron empleados' : 'No hay empleados registrados'}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredEmployees.map((e) => (
+                          <tr key={e.id}>
+                            <td className="px-4">
+                              <span className="badge bg-secondary">#{e.id}</span>
+                            </td>
+                            <td>
+                              <strong className="text-dark">{e.firstName} {e.lastName}</strong>
+                            </td>
+                            <td>{e.dni}</td>
+                            <td className="d-none d-md-table-cell">
+                              {e.area?.name || "—"}
+                            </td>
+                            <td className="d-none d-lg-table-cell">
+                              {e.position || "—"}
+                            </td>
+                            <td className="d-none d-lg-table-cell">
+                              {e.schedule ? `${e.schedule.startTime} - ${e.schedule.endTime}` : "—"}
+                            </td>
+                            <td className="d-none d-xl-table-cell">
+                              {formatDateSafe(e.hireDate)}
+                            </td>
+                            <td className="text-center">
+                              {e.photoUrl ? (
+                                <img
+                                  src={e.photoUrl}
+                                  alt="foto"
+                                  className="rounded-circle"
+                                  style={{ width: "45px", height: "45px", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <i className="bi bi-person-circle fs-3 text-muted"></i>
+                              )}
+                            </td>
+                            <td className="text-end pe-4">
+                              <div className="d-flex justify-content-end gap-2">
+                                <button 
+                                  className="btn btn-warning btn-sm"
+                                  onClick={() => handleEdit(e)}
+                                  title="Editar"
+                                >
+                                  <i className="bi bi-pencil"></i>
+                                </button>
+                                <button 
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => openDeleteModal(e)}
+                                  title="Eliminar"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Formulario de creación/edición */}
+      {showModal && (
+        <div className="row mb-4">
+          <div className="col-12">
+            <div className="card shadow-sm border border-primary">
+              <div className="card-header bg-primary text-white py-3">
+                <h5 className="mb-0 d-flex align-items-center fw-bold">
+                  <i className={`bi ${selectedEmployee ? 'bi-pencil-square' : 'bi-plus-circle'} me-2`}></i>
+                  {selectedEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
+                </h5>
+              </div>
+              <div className="card-body">
+                <EmployeeForm 
+                  employee={selectedEmployee} 
+                  onClose={() => {
+                    setShowModal(false);
+                    setSelectedEmployee(null);
+                  }}
+                  onSave={handleSave}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Delete */}
+      {showDeleteModal && employeeToDelete && (
+        <div 
+          className="modal fade show d-block" 
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}} 
+          onClick={() => setShowDeleteModal(false)}
+          tabIndex="-1"
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header bg-danger text-white">
+                <h5 className="modal-title d-flex align-items-center">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Confirmar Eliminación
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close btn-close-white" 
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body text-center py-4">
+                <p className="mb-2">¿Estás seguro de eliminar este empleado?</p>
+                <p className="fs-5 fw-bold text-danger mb-2">
+                  {employeeToDelete.firstName} {employeeToDelete.lastName}
+                </p>
+                <p className="text-muted small mb-0">Esta acción no se puede deshacer</p>
+              </div>
+              <div className="modal-footer justify-content-center gap-2">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDelete}
+                >
+                  <i className="bi bi-trash me-1"></i>
+                  Sí, Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
