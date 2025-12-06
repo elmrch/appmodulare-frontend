@@ -13,25 +13,24 @@ const AttendanceList = () => {
   const [alert, setAlert] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-const recordsPerPage = 8; 
+  const recordsPerPage = 8; 
 
-const indexOfLastRecord = currentPage * recordsPerPage;
-const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-const currentRecords = filteredAttendance.slice(indexOfFirstRecord, indexOfLastRecord);
-const totalPages = Math.ceil(filteredAttendance.length / recordsPerPage);
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = filteredAttendance.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(filteredAttendance.length / recordsPerPage);
 
-// Funciones para cambiar de página
-const handleNext = () => {
-  if (currentPage < totalPages) {
-    setCurrentPage(currentPage + 1);
-  }
-};
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
-const handlePrevious = () => {
-  if (currentPage > 1) {
-    setCurrentPage(currentPage - 1);
-  }
-};
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   useEffect(() => {
     loadAttendance();
@@ -55,7 +54,6 @@ const handlePrevious = () => {
     }
   };
 
-  // BUSCAR POR nombre, dni o fecha
   const handleSearch = (value) => {
     setSearchTerm(value);
 
@@ -81,7 +79,6 @@ const handlePrevious = () => {
     setFilteredAttendance(filtered);
   };
 
-  // ELIMINAR
   const handleDelete = async (id) => {
     if (window.confirm("¿Eliminar este registro de asistencia?")) {
       try {
@@ -95,30 +92,25 @@ const handlePrevious = () => {
     }
   };
 
-const exportToPDF = () => {
+  const exportToPDF = () => {
     const data = filteredAttendance.length > 0 ? filteredAttendance : attendance;
     const doc = new jsPDF("l", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    
-    /* -------------------------- ENCABEZADO TABLA -------------------------- */
     const headers = ["ID", "EMPLEADO", "DNI", "FECHA", "ENTRADA", "SALIDA", "HORAS", "ESTADO"];
     const colWidths = [12, 55, 25, 28, 35, 35, 22, 33];
     const startY = 10;
     const startX = 10;
     const rowHeight = 8;
     
-    // Color de fondo del encabezado (azul claro)
     doc.setFillColor(102, 153, 204);
     let xPos = startX;
     
-    // Dibujar celdas del encabezado
     headers.forEach((header, i) => {
       doc.rect(xPos, startY, colWidths[i], rowHeight, "F");
       xPos += colWidths[i];
     });
     
-    // Bordes del encabezado
     doc.setDrawColor(0);
     doc.setLineWidth(0.3);
     xPos = startX;
@@ -127,7 +119,6 @@ const exportToPDF = () => {
       xPos += colWidths[i];
     });
     
-    // Texto del encabezado (centrado)
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
@@ -140,19 +131,16 @@ const exportToPDF = () => {
       xPos += colWidths[i];
     });
     
-    /* ------------------------------- DATOS --------------------------------- */
     let yPos = startY + rowHeight;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8.5);
     
     data.forEach((row, index) => {
-      // Control de página
       if (yPos > 190) {
         doc.addPage();
         yPos = 10;
         
-        // Re-dibujar encabezado en nueva página
         doc.setFillColor(102, 153, 204);
         xPos = startX;
         headers.forEach((header, i) => {
@@ -183,7 +171,6 @@ const exportToPDF = () => {
         doc.setTextColor(0, 0, 0);
       }
       
-      // Fondo alternado (blanco/gris claro)
       if (index % 2 === 0) {
         doc.setFillColor(255, 255, 255);
       } else {
@@ -196,14 +183,12 @@ const exportToPDF = () => {
         xPos += colWidths[i];
       });
       
-      // Bordes de las celdas
       xPos = startX;
       headers.forEach((_, i) => {
         doc.rect(xPos, yPos, colWidths[i], rowHeight);
         xPos += colWidths[i];
       });
       
-      // Preparar datos de la fila
       const rowData = [
         String(row.id),
         `${row.firstName} ${row.lastName}`,
@@ -225,15 +210,12 @@ const exportToPDF = () => {
         row.status || "—"
       ];
       
-      // Texto de las celdas (centrado para ID, izquierda para el resto)
       xPos = startX;
       rowData.forEach((cell, i) => {
         if (i === 0) {
-          // ID centrado
           const textWidth = doc.getTextWidth(cell);
           doc.text(cell, xPos + (colWidths[i] - textWidth) / 2, yPos + 5.5);
         } else {
-          // Resto con padding izquierdo
           doc.text(cell, xPos + 2, yPos + 5.5);
         }
         xPos += colWidths[i];
@@ -242,7 +224,6 @@ const exportToPDF = () => {
       yPos += rowHeight;
     });
     
-    /* -------------------------------- FOOTER ------------------------------- */
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -256,12 +237,10 @@ const exportToPDF = () => {
       );
     }
     
-    /* -------------------------------- SAVE -------------------------------- */
     doc.save(`Asistencias_${new Date().toISOString().split("T")[0]}.pdf`);
     showAlert("success", "PDF generado correctamente");
   };
 
-  // EXPORTAR A EXCEL
   const exportToExcel = () => {
     const data = filteredAttendance.length > 0 ? filteredAttendance : attendance;
 
@@ -296,7 +275,6 @@ const exportToPDF = () => {
     showAlert("success", "Excel generado correctamente");
   };
 
-  // Función para formatear fecha de forma legible
   const formatDate = (dateString) => {
     if (!dateString) return "—";
     const date = new Date(dateString + "T00:00:00");
@@ -304,20 +282,19 @@ const exportToPDF = () => {
     return date.toLocaleDateString('es-ES', options);
   };
 
-  // Función para obtener clase del badge de estado
-const getStatusBadge = (status) => {
-  if (!status) return <span className="badge bg-secondary">Sin estado</span>;
-  
-  if (status.toUpperCase() === "PUNTUAL") {
-    return <span className="badge bg-success"><i className="bi bi-check-circle-fill me-1"></i>PUNTUAL</span>;
-  } else if (status.toUpperCase() === "TARDE") {
-    return <span className="badge bg-danger"><i className="bi bi-exclamation-triangle-fill me-1"></i>TARDE</span>;
-  } else if (status.toUpperCase() === "FUERA_DE_UBICACION") {
-    return <span className="badge bg-warning text-dark"><i className="bi bi-geo-alt-fill me-1"></i>FUERA DE UBICACIÓN</span>;
-  }
-  
-  return <span className="badge bg-secondary">{status}</span>;
-};
+  const getStatusBadge = (status) => {
+    if (!status) return <span className="badge bg-secondary">Sin estado</span>;
+    
+    if (status.toUpperCase() === "PUNTUAL") {
+      return <span className="badge bg-success"><i className="bi bi-check-circle-fill me-1"></i>PUNTUAL</span>;
+    } else if (status.toUpperCase() === "TARDE") {
+      return <span className="badge bg-danger"><i className="bi bi-exclamation-triangle-fill me-1"></i>TARDE</span>;
+    } else if (status.toUpperCase() === "FUERA_DE_UBICACION") {
+      return <span className="badge bg-warning text-dark"><i className="bi bi-geo-alt-fill me-1"></i>FUERA DE UBICACIÓN</span>;
+    }
+    
+    return <span className="badge bg-secondary">{status}</span>;
+  };
 
   return (
     <div className="attendance-container">
@@ -329,7 +306,6 @@ const getStatusBadge = (status) => {
         />
       )}
 
-      {/* HEADER */}
       <div className="attendance-header">
         <div className="header-left">
           <h2 className="page-title">
@@ -362,7 +338,6 @@ const getStatusBadge = (status) => {
         </div>
       </div>
 
-      {/* BUSCADOR */}
       <div className="search-box">
         <i className="bi bi-search search-icon"></i>
         <input
@@ -383,7 +358,6 @@ const getStatusBadge = (status) => {
         )}
       </div>
 
-      {/* LOADING */}
       {loading && (
         <div className="loading-container">
           <div className="spinner-border text-primary" role="status">
@@ -393,31 +367,29 @@ const getStatusBadge = (status) => {
         </div>
       )}
 
-      {/* TABLE */}
       {!loading && (
         <div className="table-card">
           <div className="table-responsive">
             <table className="table attendance-table">
-<thead>
-  <tr>
-    <th style={{ width: '4%' }}>ID</th>
-    <th style={{ width: '16%' }}>Empleado</th>
-    <th style={{ width: '9%' }}>DNI</th>
-    <th style={{ width: '11%' }}>Fecha</th>
-    <th style={{ width: '8%' }}>Entrada</th>
-    <th style={{ width: '8%' }}>Salida</th>
-    <th style={{ width: '7%' }}>Horas</th>
-    <th style={{ width: '11%' }}>Estado</th>
-    <th style={{ width: '16%' }}>📍 Ubicación</th>
-    <th style={{ width: '7%' }}>Acciones</th>
-  </tr>
-</thead>
+              <thead>
+                <tr>
+                  <th style={{ width: '5%' }} className="text-center">ID</th>
+                  <th style={{ width: '16%' }}>Empleado</th>
+                  <th style={{ width: '10%' }} className="text-center">DNI</th>
+                  <th style={{ width: '12%' }} className="text-center">Fecha</th>
+                  <th style={{ width: '9%' }} className="text-center">Entrada</th>
+                  <th style={{ width: '9%' }} className="text-center">Salida</th>
+                  <th style={{ width: '8%' }} className="text-center">Horas</th>
+                  <th style={{ width: '10%' }} className="text-center">Estado</th>
+                  <th style={{ width: '14%' }} className="text-center">📍 Ubicación</th>
+                  <th style={{ width: '7%' }} className="text-center">Acciones</th>
+                </tr>
+              </thead>
 
               <tbody>
-                
                 {filteredAttendance.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="text-center empty-state">
+                    <td colSpan="10" className="text-center empty-state">
                       <i className="bi bi-inbox display-4 text-muted"></i>
                       <p className="mt-2">
                         {searchTerm
@@ -429,29 +401,19 @@ const getStatusBadge = (status) => {
                 ) : (
                   currentRecords.map((a) => (
                     <tr key={a.id} className="attendance-row">
-                      <td className="fw-bold text-primary">#{a.id}</td>
+                      <td className="fw-bold text-primary text-center">#{a.id}</td>
                       <td>
-                        <div className="employee-info">
-                          <i className="bi bi-person-circle text-primary me-2"></i>
-                          <span className="fw-semibold">{a.firstName} {a.lastName}</span>
-                        </div>
+                        <span className="fw-semibold">{a.firstName} {a.lastName}</span>
                       </td>
-                      <td>
-                        <span className="badge bg-light text-dark">
-                          <i className="bi bi-card-text me-1"></i>
-                          {a.dni}
-                        </span>
+                      <td className="text-center">
+                        <span className="text-muted">{a.dni}</span>
                       </td>
-                      <td>
-                        <div className="date-info">
-                          <i className="bi bi-calendar3 text-primary me-1"></i>
-                          <span>{formatDate(a.date)}</span>
-                        </div>
+                      <td className="text-center">
+                        <span className="text-muted">{formatDate(a.date)}</span>
                       </td>
-                      <td>
+                      <td className="text-center">
                         {a.checkIn ? (
                           <span className="time-badge time-in">
-                            <i className="bi bi-arrow-right-circle me-1"></i>
                             {new Date(a.checkIn).toLocaleTimeString('es-ES', { 
                               hour: '2-digit', 
                               minute: '2-digit' 
@@ -461,10 +423,9 @@ const getStatusBadge = (status) => {
                           <span className="text-muted">—</span>
                         )}
                       </td>
-                      <td>
+                      <td className="text-center">
                         {a.checkOut ? (
                           <span className="time-badge time-out">
-                            <i className="bi bi-arrow-left-circle me-1"></i>
                             {new Date(a.checkOut).toLocaleTimeString('es-ES', { 
                               hour: '2-digit', 
                               minute: '2-digit' 
@@ -474,48 +435,47 @@ const getStatusBadge = (status) => {
                           <span className="text-muted">—</span>
                         )}
                       </td>
-                      <td>
+                      <td className="text-center">
                         <span className="badge bg-info text-dark">
-                          <i className="bi bi-clock me-1"></i>
                           {a.totalHoursFormatted || "—"}
                         </span>
                       </td>
-                      <td>
+                      <td className="text-center">
                         {getStatusBadge(a.status)}
                       </td>
-                       <td>
-      <div className="location-info">
-        {a.checkInLatitude && a.checkInLongitude ? (
-          <>
-            <div className="mb-1">
-              <span className={`badge ${a.locationValid ? 'bg-success' : 'bg-danger'}`}>
-                <i className={`bi ${a.locationValid ? 'bi-geo-alt-fill' : 'bi-exclamation-triangle-fill'} me-1`}></i>
-                {a.locationValid ? 'Válida' : 'Fuera'}
-              </span>
-            </div>
-            <small className="text-muted d-block">
-              <i className="bi bi-pin-map me-1"></i>
-              {a.distanceFromOffice ? `${Math.round(a.distanceFromOffice)}m` : 'N/A'}
-            </small>
-            <a 
-              href={`https://www.google.com/maps?q=${a.checkInLatitude},${a.checkInLongitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-sm btn-outline-primary mt-1"
-              title="Ver en Google Maps"
-            >
-              <i className="bi bi-map"></i> Mapa
-            </a>
-          </>
-        ) : (
-          <span className="badge bg-secondary">
-            <i className="bi bi-question-circle me-1"></i>
-            Sin GPS
-          </span>
-        )}
-      </div>
-    </td>
                       <td>
+                        <div className="location-info">
+                          {a.checkInLatitude && a.checkInLongitude ? (
+                            <>
+                              <div className="mb-1">
+                                <span className={`badge ${a.locationValid ? 'bg-success' : 'bg-danger'}`}>
+                                  <i className={`bi ${a.locationValid ? 'bi-geo-alt-fill' : 'bi-exclamation-triangle-fill'} me-1`}></i>
+                                  {a.locationValid ? 'Válida' : 'Fuera'}
+                                </span>
+                              </div>
+                              <small className="text-muted d-block">
+                                <i className="bi bi-pin-map me-1"></i>
+                                {a.distanceFromOffice ? `${Math.round(a.distanceFromOffice)}m` : 'N/A'}
+                              </small>
+                              <a 
+                                href={`https://www.google.com/maps?q=${a.checkInLatitude},${a.checkInLongitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-outline-primary mt-1"
+                                title="Ver en Google Maps"
+                              >
+                                <i className="bi bi-map"></i> Mapa
+                              </a>
+                            </>
+                          ) : (
+                            <span className="badge bg-secondary">
+                              <i className="bi bi-question-circle me-1"></i>
+                              Sin GPS
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-center">
                         <button
                           className="btn btn-danger btn-sm btn-delete"
                           onClick={() => handleDelete(a.id)}
@@ -527,32 +487,32 @@ const getStatusBadge = (status) => {
                     </tr>
                   ))
                 )}
-                {/* PAGINACIÓN */}
-{filteredAttendance.length > recordsPerPage && (
-  <div className="d-flex justify-content-between align-items-center mt-3">
-    <button
-      className="btn btn-secondary"
-      onClick={handlePrevious}
-      disabled={currentPage === 1}
-    >
-      <i className="bi bi-chevron-left me-1"></i>
-      Anterior
-    </button>
-    
-    <span>Página {currentPage} de {totalPages}</span>
-    
-    <button
-      className="btn btn-secondary"
-      onClick={handleNext}
-      disabled={currentPage === totalPages}
-    >
-      Siguiente
-      <i className="bi bi-chevron-right ms-1"></i>
-    </button>
-  </div>
-)}
               </tbody>
             </table>
+
+            {filteredAttendance.length > recordsPerPage && (
+              <div className="pagination-container d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                <button
+                  className="btn btn-secondary"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <i className="bi bi-chevron-left me-1"></i>
+                  Anterior
+                </button>
+                
+                <span className="fw-semibold">Página {currentPage} de {totalPages}</span>
+                
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                  <i className="bi bi-chevron-right ms-1"></i>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

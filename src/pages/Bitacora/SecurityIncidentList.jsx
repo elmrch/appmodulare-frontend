@@ -4,6 +4,7 @@ import SecurityIncidentForm from "./SecurityIncidentForm";
 import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import './bitacora.css';
 
 const formatDateSafe = (dateString) => {
   if (!dateString) return "—";

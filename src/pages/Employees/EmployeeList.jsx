@@ -309,94 +309,85 @@ const EmployeeList = () => {
         )}
       </div>
 
-      {loading && <div className="alert alert-info">Cargando empleados...</div>}
+  {loading && <div className="alert alert-info">Cargando empleados...</div>}
 
+      {/* TABLA IGUAL QUE EN ÁREAS */}
       {!loading && (
-        <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead className="table-dark">
-              <tr>
-                <th>ID</th>
-                <th>Nombre Completo</th>
-                <th>DNI</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Área</th>
-                <th>Puesto</th>
-                <th>Sueldo</th>
-                <th>Horario</th>
-                <th>Ingreso</th>
-                <th>Foto</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredEmployees.length === 0 ? (
+        <div className="table-card">
+          <div className="table-responsive">
+            <table className="table attendance-table">
+              <thead>
                 <tr>
-                  <td colSpan="12" className="text-center">
-                    {searchTerm ? "No se encontraron empleados con ese criterio" : "No hay empleados registrados"}
-                  </td>
+                  <th>ID</th>
+                  <th>Nombre Completo</th>
+                  <th>DNI</th>
+                  <th>Área</th>
+                  <th>Puesto</th>
+                  <th>Ingreso</th>
+                  <th>Horario</th> 
+
+                  <th>Foto</th>
+                  <th>Acciones</th>
                 </tr>
-              ) : (
-                filteredEmployees.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.id}</td>
-                    <td>{e.firstName} {e.lastName}</td>
-                    <td>{e.dni}</td>
-                    <td>{e.email}</td>
-                    <td>{e.phone}</td>
-                    <td>{e.area ? e.area.name : "—"}</td>
-                    <td>{e.position}</td>
-                    <td>
-                      {e.salary
-                        ? "S/ " + parseFloat(e.salary).toFixed(2)
-                        : "—"}
-                    </td>
-                    <td>
-                      {e.schedule
-                        ? `${e.schedule.startTime} - ${e.schedule.endTime}`
-                        : "—"}
-                    </td>
-                    <td>
-                      {/* ✅ AQUÍ ESTÁ LA CORRECCIÓN PRINCIPAL */}
-                      {formatDateSafe(e.hireDate)}
-                    </td>
-                    <td>
-                      {e.photoUrl ? (
-                        <img 
-                          src={e.photoUrl} 
-                          alt="foto" 
-                          style={{ width: "45px", height: "45px", borderRadius: "50%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                      <button
-                        className="btn btn-warning btn-sm me-2 px-2 py-1"
-                        onClick={() => handleEdit(e)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm px-2 py-1"
-                        onClick={() => openDeleteModal(e)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        🗑️ Eliminar
-                      </button>
+              </thead>
+
+              <tbody>
+                {filteredEmployees.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center">
+                      No hay empleados registrados
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredEmployees.map((e) => (
+                    <tr key={e.id}>
+                      <td>#{e.id}</td>
+                      <td><strong>{e.firstName} {e.lastName}</strong></td>
+                      <td>{e.dni}</td>
+                      <td>{e.area?.name || "—"}</td>
+                      <td>{e.position || "—"}</td>
+                      <td>{formatDateSafe(e.hireDate)}</td>
+                                    <td>
+                  {e.schedule
+                    ? `${e.schedule.startTime} - ${e.schedule.endTime}`
+                    : "—"}
+                </td>
+                      <td>
+                        {e.photoUrl ? (
+                          <img
+                            src={e.photoUrl}
+                            alt="foto"
+                            className="rounded-circle"
+                            style={{ width: "45px", height: "45px", objectFit: "cover" }}
+                          />
+                        ) : "—"}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-warning btn-sm me-2"
+                          onClick={() => handleEdit(e)}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => openDeleteModal(e)}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+
+            </table>
+          </div>
         </div>
       )}
 
+      {/* MODAL FORM */}
       {showModal && (
         <EmployeeForm
           employee={selectedEmployee}
@@ -405,33 +396,50 @@ const EmployeeList = () => {
         />
       )}
 
+      {/* MODAL DELETE */}
       {showDeleteModal && employeeToDelete && (
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+        <div className="modal fade show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div className="modal-dialog modal-dialog-centered"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-content">
               <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">⚠️ Confirmar Eliminación</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+                <h5 className="modal-title">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Confirmar Eliminación
+                </h5>
+                <button className="btn-close btn-close-white"
+                  onClick={() => setShowDeleteModal(false)}
+                ></button>
               </div>
+
               <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar al empleado?</p>
-                <p className="fs-5 fw-bold text-danger mb-2">
+                <p>¿Eliminar empleado?</p>
+                <p className="fw-bold text-danger">
                   {employeeToDelete.firstName} {employeeToDelete.lastName}
                 </p>
                 <p className="text-muted small">Esta acción no se puede deshacer</p>
               </div>
+
               <div className="modal-footer justify-content-center">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                <button className="btn btn-secondary"
+                  onClick={() => setShowDeleteModal(false)}>
                   Cancelar
                 </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Sí, Eliminar
+
+                <button className="btn btn-danger" onClick={handleDelete}>
+                  Sí, eliminar
                 </button>
               </div>
+
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
