@@ -231,45 +231,50 @@ if (type === "in") {
                 )}
                 </div>
             </div>
+            
+            {/* CAMPOS SOLO PARA INGRESO */}
+            {type === 'in' && (
+              <>
+                {/* Nombre */}
+                <div className="mb-4">
+                    <label className="form-label text-white-70 fw-semibold small">Nombre Completo</label>
+                    <input
+                    type="text"
+                    className="form-control glass-input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ingrese nombre completo"
+                    disabled={loading}
+                    />
+                </div>
 
-            {/* Nombre */}
-            <div className="mb-4">
-                <label className="form-label text-white-70 fw-semibold small">Nombre Completo</label>
-                <input
-                type="text"
-                className="form-control glass-input"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ingrese nombre completo"
-                disabled={loading || type === "out"}
-                />
-            </div>
+                {/* Empresa */}
+                <div className="mb-4">
+                    <label className="form-label text-white-70 fw-semibold small">Empresa</label>
+                    <input
+                    type="text"
+                    className="form-control glass-input"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Ej: MODULARE"
+                    disabled={loading}
+                    />
+                </div>
 
-            {/* Empresa */}
-            <div className="mb-4">
-                <label className="form-label text-white-70 fw-semibold small">Empresa</label>
-                <input
-                type="text"
-                className="form-control glass-input"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Ej: MODULARE"
-                disabled={loading || type === "out"}
-                />
-            </div>
-
-            {/* Motivo */}
-            <div className="mb-4">
-                <label className="form-label text-white-70 fw-semibold small">Motivo</label>
-                <input
-                type="text"
-                className="form-control glass-input"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Reunión, entrega, consulta..."
-                disabled={loading || type === "out"}
-                />
-            </div>
+                {/* Motivo */}
+                <div className="mb-4">
+                    <label className="form-label text-white-70 fw-semibold small">Motivo</label>
+                    <input
+                    type="text"
+                    className="form-control glass-input"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Reunión, entrega, consulta..."
+                    disabled={loading}
+                    />
+                </div>
+              </>
+            )}
 
             {/* BOTÓN SUBMIT */}
             <button

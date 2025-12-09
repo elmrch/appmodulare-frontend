@@ -1,9 +1,3 @@
-/* Layout principal */
-.layout {
-  display: flex;
-  min-height: 100vh;
-  background: #f8f9fa;
-}
 
 /* Contenido principal */
 .main-content {

@@ -3,6 +3,7 @@ import { attendanceService } from "../../services/attendanceService";
 import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import './Attendance.css';
 
 const AttendanceList = () => {
   const [attendance, setAttendance] = useState([]);
@@ -10,26 +11,11 @@ const AttendanceList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
-
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [attendanceToDelete, setAttendanceToDelete] = useState(null);
+  //pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 8;
-
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = filteredAttendance.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(filteredAttendance.length / recordsPerPage);
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
+const [itemsPerPage] = useState(8); 
 
   useEffect(() => {
     loadAttendance();
@@ -52,73 +38,160 @@ const AttendanceList = () => {
       setLoading(false);
     }
   };
-
   const handleSearch = (value) => {
     setSearchTerm(value);
+      setCurrentPage(1);
+
 
     if (value.trim() === "") {
       setFilteredAttendance(attendance);
-      setCurrentPage(1);
       return;
     }
 
-    const term = value.toLowerCase();
-
+    const term = value.toLowerCase().trim();
     const filtered = attendance.filter((a) => {
       const fullName = `${a.firstName} ${a.lastName}`.toLowerCase();
       const dni = a.dni?.toLowerCase() || "";
       const date = a.date?.toLowerCase() || "";
+      const status = a.status?.toLowerCase() || "";
 
-      return fullName.includes(term) || dni.includes(term) || date.includes(term);
+      return (
+        fullName.includes(term) ||
+        dni.includes(term) ||
+        date.includes(term) ||
+        status.includes(term)
+      );
     });
 
     setFilteredAttendance(filtered);
-    setCurrentPage(1);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Eliminar este registro de asistencia?")) {
-      try {
-        await attendanceService.delete(id);
-        showAlert("success", "Asistencia eliminada correctamente");
-        loadAttendance();
-      } catch (error) {
-        console.error("Error:", error);
-        showAlert("danger", "Error al eliminar asistencia");
+  // Cálculos de paginación
+const indexOfLastItem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+const currentItems = filteredAttendance.slice(indexOfFirstItem, indexOfLastItem);
+const totalPages = Math.ceil(filteredAttendance.length / itemsPerPage);
+
+
+const handlePageChange = (pageNumber) => {
+  setCurrentPage(pageNumber);
+};
+
+const handlePrevious = () => {
+  if (currentPage > 1) setCurrentPage(currentPage - 1);
+};
+
+const handleNext = () => {
+  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+};
+
+// Generar números de página con puntos suspensivos
+const getPageNumbers = () => {
+  const pageNumbers = [];
+  const maxVisiblePages = 5;
+  
+  if (totalPages <= maxVisiblePages) {
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+  } else {
+    if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) {
+        pageNumbers.push(i);
       }
+      pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pageNumbers.push(1);
+      pageNumbers.push('...');
+      for (let i = totalPages - 3; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+      pageNumbers.push('...');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+    }
+  }
+  
+  return pageNumbers;
+};
+  const openDeleteModal = (attendanceRecord) => {
+    setAttendanceToDelete(attendanceRecord);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await attendanceService.delete(attendanceToDelete.id);
+      setShowDeleteModal(false);
+      setAttendanceToDelete(null);
+      showAlert("success", "Registro de asistencia eliminado correctamente");
+      loadAttendance();
+    } catch (error) {
+      console.error("Error:", error);
+      showAlert("danger", "Error al eliminar registro de asistencia");
     }
   };
 
-  const exportToPDF = () => {
-    const data = filteredAttendance.length > 0 ? filteredAttendance : attendance;
-    const doc = new jsPDF("l", "mm", "a4");
+  // Exportar a PDF
+  const exportToPDF = async () => {
+    const dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
+    const doc = new jsPDF('l', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    const headers = ["ID", "EMPLEADO", "DNI", "FECHA", "ENTRADA", "SALIDA", "HORAS", "ESTADO"];
-    const colWidths = [12, 55, 25, 28, 35, 35, 22, 33];
-    const startY = 10;
+    // Cargar el logo
+    const logo = "/src/assets/img/favicon_1.png";
+    const imgData = await fetch(logo)
+      .then(res => res.blob())
+      .then(blob => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      }));
+
+    // Encabezado del PDF
+    doc.addImage(imgData, 'PNG', 10, 8, 15, 15);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor("#ff1d4d"); // Color corporativo
+    doc.setFontSize(16);
+    doc.text("MODULARE AREQUIPA SAC", 30, 18);
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.setFont("helvetica", "normal");
+    doc.text("Reporte de Asistencias", 30, 24);
+
+    // Tabla
+    const headers = ["ID", "EMPLEADO", "DNI", "FECHA", "ENTRADA", "SALIDA", "HORAS", "ESTADO", "UBICACIÓN"];
+    const colWidths = [10, 55, 22, 22, 22, 22, 20, 25, 30];
+    const startY = 35;
     const startX = 10;
-    const rowHeight = 8;
+    const lineHeight = 8;
 
-    doc.setFillColor(102, 153, 204);
+    // Dibujar encabezados de la tabla
+    doc.setFillColor("#ff1d4d"); // Color corporativo para el fondo del header
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.3);
     let xPos = startX;
 
     headers.forEach((header, i) => {
-      doc.rect(xPos, startY, colWidths[i], rowHeight, "F");
+      doc.rect(xPos, startY, colWidths[i], lineHeight, "FD");
       xPos += colWidths[i];
     });
 
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.3);
-    xPos = startX;
-    headers.forEach((header, i) => {
-      doc.rect(xPos, startY, colWidths[i], rowHeight);
-      xPos += colWidths[i];
-    });
-
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(255, 255, 255); // Texto blanco
     xPos = startX;
 
     headers.forEach((header, i) => {
@@ -128,46 +201,19 @@ const AttendanceList = () => {
       xPos += colWidths[i];
     });
 
-    let yPos = startY + rowHeight;
+    // Dibujar filas de datos
+    let yPos = startY + lineHeight;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8.5);
 
-    data.forEach((row, index) => {
-      if (yPos > 190) {
+    dataToExport.forEach((a, index) => {
+      if (yPos > pageHeight - 20) { // Salto de página
         doc.addPage();
-        yPos = 10;
-
-        doc.setFillColor(102, 153, 204);
-        xPos = startX;
-        headers.forEach((header, i) => {
-          doc.rect(xPos, yPos, colWidths[i], rowHeight, "F");
-          xPos += colWidths[i];
-        });
-
-        xPos = startX;
-        headers.forEach((header, i) => {
-          doc.rect(xPos, yPos, colWidths[i], rowHeight);
-          xPos += colWidths[i];
-        });
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        xPos = startX;
-        headers.forEach((header, i) => {
-          const textWidth = doc.getTextWidth(header);
-          const textX = xPos + (colWidths[i] - textWidth) / 2;
-          doc.text(header, textX, yPos + 5.5);
-          xPos += colWidths[i];
-        });
-
-        yPos += rowHeight;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
-        doc.setTextColor(0, 0, 0);
+        yPos = 20; // Reiniciar Y en la nueva página
       }
 
+      // Alternar color de filas
       if (index % 2 === 0) {
         doc.setFillColor(255, 255, 255);
       } else {
@@ -176,451 +222,393 @@ const AttendanceList = () => {
 
       xPos = startX;
       headers.forEach((_, i) => {
-        doc.rect(xPos, yPos, colWidths[i], rowHeight, "F");
-        xPos += colWidths[i];
-      });
-
-      xPos = startX;
-      headers.forEach((_, i) => {
-        doc.rect(xPos, yPos, colWidths[i], rowHeight);
+        doc.rect(xPos, yPos, colWidths[i], lineHeight, "FD");
         xPos += colWidths[i];
       });
 
       const rowData = [
-        String(row.id),
-        `${row.firstName} ${row.lastName}`,
-        row.dni || "—",
-        row.date || "—",
-        row.checkIn
-          ? new Date(row.checkIn).toLocaleTimeString("es-PE", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            })
-          : "—",
-        row.checkOut
-          ? new Date(row.checkOut).toLocaleTimeString("es-PE", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            })
-          : "—",
-        row.totalHoursFormatted || "—",
-        row.status || "—",
+        String(a.id),
+        `${a.firstName} ${a.lastName}`,
+        a.dni || "—",
+        formatDateSafe(a.date),
+        formatTime(a.checkIn),
+        formatTime(a.checkOut),
+        a.totalHoursFormatted || "—",
+        a.status || "—",
+        getLocationStatus(a)
       ];
 
       xPos = startX;
       rowData.forEach((cell, i) => {
-        if (i === 0) {
-          const textWidth = doc.getTextWidth(cell);
-          doc.text(cell, xPos + (colWidths[i] - textWidth) / 2, yPos + 5.5);
-        } else {
-          doc.text(cell, xPos + 2, yPos + 5.5);
-        }
+        doc.text(cell, xPos + 2, yPos + 5.5);
         xPos += colWidths[i];
       });
 
-      yPos += rowHeight;
+      yPos += lineHeight;
     });
-
+    
+    // Pie de página
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(100);
+      doc.setTextColor(150);
       doc.text(
-        `Página ${i} de ${totalPages} - Total registros: ${data.length}`,
+        `Página ${i} de ${totalPages} - Total de registros: ${dataToExport.length}`,
         pageWidth / 2,
-        200,
-        { align: "center" }
+        pageHeight - 10,
+        { align: 'center' }
       );
     }
-
-    doc.save(`Asistencias_${new Date().toISOString().split("T")[0]}.pdf`);
+    
+    doc.save(`Reporte-Asistencias_${new Date().toISOString().split('T')[0]}.pdf`);
     showAlert("success", "PDF generado correctamente");
   };
 
+  // Exportar a Excel
   const exportToExcel = () => {
-    const data = filteredAttendance.length > 0 ? filteredAttendance : attendance;
-
-    const excelData = data.map((a) => ({
-      ID: a.id,
-      Empleado: `${a.firstName} ${a.lastName}`,
-      DNI: a.dni,
-      Fecha: a.date,
-      Entrada: a.checkIn ? new Date(a.checkIn).toLocaleTimeString() : "",
-      Salida: a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : "",
-      Horas: a.totalHoursFormatted || "",
-      Estado: a.status,
+    const dataToExport = filteredAttendance.length > 0 ? filteredAttendance : attendance;
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+    
+    const excelData = dataToExport.map(a => ({
+      'ID': a.id,
+      'Nombre': a.firstName,
+      'Apellido': a.lastName,
+      'DNI': a.dni || '',
+      'Fecha': formatDateSafe(a.date),
+      'Entrada': a.checkIn ? formatTime(a.checkIn) : '',
+      'Salida': a.checkOut ? formatTime(a.checkOut) : '',
+      'Horas Trabajadas': a.totalHoursFormatted || '',
+      'Estado': a.status || '',
+      'Ubicación': getLocationStatus(a),
+      'Distancia (m)': a.distanceFromOffice ? Math.round(a.distanceFromOffice) : '',
     }));
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelData);
 
-    ws["!cols"] = [
-      { wch: 5 },
-      { wch: 25 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 8 },
-      { wch: 15 },
+    const colWidths = [
+      { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 15 }, { wch: 15 }, { wch: 12 }
     ];
+    ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
-    XLSX.writeFile(
-      wb,
-      `Asistencias_${new Date().toISOString().split("T")[0]}.xlsx`
-    );
-
+    XLSX.writeFile(wb, `Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
     showAlert("success", "Excel generado correctamente");
   };
 
-  const formatDate = (dateString) => {
+  // Funciones auxiliares
+  const formatDateSafe = (dateString) => {
     if (!dateString) return "—";
-    const date = new Date(dateString + "T00:00:00");
-    const options = {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    };
-    return date.toLocaleDateString("es-ES", options);
+    
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+      const [year, month, day] = dateString.split('T')[0].split('-');
+      return `${day}/${month}/${year}`;
+    }
+    
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('es-PE');
+    } catch {
+      return "—";
+    }
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "—";
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return "—";
+    }
+  };
+
+  const getLocationStatus = (attendance) => {
+    if (!attendance.checkInLatitude || !attendance.checkInLongitude) {
+      return "Sin GPS";
+    }
+    return attendance.locationValid ? "Válida" : "Fuera de ubicación";
   };
 
   const getStatusBadge = (status) => {
-    if (!status)
-      return <span className="badge bg-secondary">Sin estado</span>;
+    if (!status) return <span className="badge bg-secondary">Sin estado</span>;
 
-    if (status.toUpperCase() === "PUNTUAL") {
-      return (
-        <span className="badge bg-success">
-          <i className="bi bi-check-circle-fill me-1"></i>PUNTUAL
-        </span>
-      );
-    } else if (status.toUpperCase() === "TARDE") {
-      return (
-        <span className="badge bg-danger">
-          <i className="bi bi-exclamation-triangle-fill me-1"></i>TARDE
-        </span>
-      );
-    } else if (status.toUpperCase() === "FUERA_DE_UBICACION") {
-      return (
-        <span className="badge bg-warning text-dark">
-          <i className="bi bi-geo-alt-fill me-1"></i>FUERA DE UBICACIÓN
-        </span>
-      );
+    const statusUpper = status.toUpperCase();
+    if (statusUpper === "PUNTUAL") {
+      return <span className="badge bg-success">PUNTUAL</span>;
+    } else if (statusUpper === "TARDE") {
+      return <span className="badge bg-danger">TARDE</span>;
+    } else if (statusUpper === "FUERA_DE_UBICACION" || statusUpper === "FUERA DE UBICACIÓN") {
+      return <span className="badge bg-warning text-dark">FUERA DE UBICACIÓN</span>;
     }
-
     return <span className="badge bg-secondary">{status}</span>;
   };
 
+  const getLocationBadge = (attendance) => {
+    if (!attendance.checkInLatitude || !attendance.checkInLongitude) {
+      return <span className="badge bg-secondary">Sin GPS</span>;
+    }
+    
+    if (attendance.locationValid) {
+      return <span className="badge bg-success">Válida</span>;
+    } else {
+      return <span className="badge bg-danger">Fuera</span>;
+    }
+  };
+
   return (
-    <div className="container-fluid px-4 py-4">
+    <div className="container-fluid">
       {/* Alert */}
       {alert && (
-        <div className="row mb-3">
-          <div className="col-12">
-            <AlertNotification
-              type={alert.type}
-              message={alert.message}
-              onClose={() => setAlert(null)}
-            />
-          </div>
-        </div>
+        <AlertNotification
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+        />
       )}
 
-      {/* Header */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div>
-              <h2 className="mb-2 fw-bold">
-                <i className="bi bi-calendar-check me-2"></i>
-                Gestión de Asistencias
-              </h2>
-              <p className="text-muted mb-0">
-                {filteredAttendance.length} registros encontrados
-              </p>
-            </div>
-
-            <div className="d-flex gap-2">
-              <button
-                className="btn btn-success d-flex align-items-center"
-                onClick={exportToExcel}
-                disabled={attendance.length === 0}
-              >
-                <i className="bi bi-file-earmark-excel me-2"></i>
-                Exportar Excel
-              </button>
-
-              <button
-                className="btn btn-danger d-flex align-items-center"
-                onClick={exportToPDF}
-                disabled={attendance.length === 0}
-              >
-                <i className="bi bi-file-earmark-pdf me-2"></i>
-                Exportar PDF
-              </button>
-            </div>
-          </div>
+      {/* Page Heading */}
+      <div className="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 className="h3 mb-0 text-gray-800">Historial de Asistencias</h1>
+        <div className="d-flex gap-2">
+          <button 
+            className=" d-sm-inline-block btn btn-sm btn-success shadow-sm"
+            onClick={exportToExcel}
+            disabled={attendance.length === 0}
+          >
+            <i className="bi bi-file-earmark-excel text-white-50 me-1"></i> Excel
+          </button>
+          <button 
+            className=" d-sm-inline-block btn btn-sm btn-danger shadow-sm"
+            onClick={exportToPDF}
+            disabled={attendance.length === 0}
+          >
+            <i className="bi bi-file-earmark-pdf text-white-50 me-1"></i> PDF
+          </button>
         </div>
+      </div>
+
+      {/* Search Card */}
+      <div className="card shadow mb-4">
+
+        
       </div>
 
       {/* Loading */}
       {loading && (
-        <div className="row">
-          <div className="col-12">
-            <div
-              className="alert alert-info d-flex align-items-center"
-              role="alert"
-            >
-              <div
-                className="spinner-border spinner-border-sm me-2"
-                role="status"
+        <div className="card shadow mb-4">
+          <div className="card-body text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted mt-2 mb-0">Cargando asistencias...</p>
+          </div>
+        </div>
+      )}
+
+      {/* DataTales Example */}
+      {!loading && (
+        <div className="card shadow mb-4">
+<div className="card-body">
+          <div className="input-group">
+            <span className="input-group-text">
+              <i className="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control input-sm"
+              placeholder="Buscar por nombre, DNI, fecha o estado..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="btn btn-outline-secondary" 
+                type="button"
+                onClick={() => handleSearch("")}
               >
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-              Cargando asistencias...
+                <i className="bi bi-x-lg"></i>
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <small className="text-muted d-block mt-2">
+              Mostrando {filteredAttendance.length} de {attendance.length} registros
+            </small>
+          )}
+        </div>
+          
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="table" id="dataTable" width="100%" cellSpacing="0">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Empleado</th>
+                    <th className="d-md-table-cell">DNI</th>
+                    <th className=" d-lg-table-cell">Fecha</th>
+                    <th className=" d-lg-table-cell">Entrada</th>
+                    <th className=" d-lg-table-cell">Salida</th>
+                    <th className=" d-xl-table-cell">Horas</th>
+                    <th>Estado</th>
+                    <th className=" d-xl-table-cell">Ubicación</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredAttendance.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="text-center py-4 text-muted">
+                        <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                        {searchTerm ? 'No se encontraron registros' : 'No hay asistencias registradas'}
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((a) => (
+                      <tr key={a.id}>
+                        <td>{a.id}</td>
+                        <td>
+                          <strong>{a.firstName} {a.lastName}</strong>
+                        </td>
+                        <td className=" d-md-table-cell">
+                          {a.dni || "—"}
+                        </td>
+                        <td className=" d-lg-table-cell">
+                          {formatDateSafe(a.date)}
+                        </td>
+                        <td className="d-lg-table-cell">
+                          {a.checkIn ? formatTime(a.checkIn) : "—"}
+                        </td>
+                        <td className=" d-lg-table-cell">
+                          {a.checkOut ? formatTime(a.checkOut) : "—"}
+                        </td>
+                        <td className=" d-xl-table-cell">
+                          {a.totalHoursFormatted || "—"}
+                        </td>
+                        <td>
+                          {getStatusBadge(a.status)}
+                        </td>
+                        <td className=" d-xl-table-cell">
+                          {getLocationBadge(a)}
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => openDeleteModal(a)}
+                            title="Eliminar"
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              {/* Paginación */}
+{filteredAttendance.length > 0 && totalPages > 1 && (
+  <div className="d-flex justify-content-between align-items-center mt-3">
+    <div className="text-muted small">
+      Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredAttendance.length)} de {filteredAttendance.length} registros
+    </div>
+    
+    <nav aria-label="Navegación de páginas">
+      <ul className="pagination mb-0">
+        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+          <button 
+            className="page-link" 
+            onClick={handlePrevious}
+            disabled={currentPage === 1}
+            aria-label="Anterior"
+          >
+            <span aria-hidden="true">&laquo;</span>
+          </button>
+        </li>
+        
+        {getPageNumbers().map((pageNum, index) => (
+          pageNum === '...' ? (
+            <li key={`ellipsis-${index}`} className="page-item disabled">
+              <span className="page-link">...</span>
+            </li>
+          ) : (
+            <li 
+              key={pageNum} 
+              className={`page-item ${currentPage === pageNum ? 'active' : ''}`}
+            >
+              <button 
+                className="page-link" 
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            </li>
+          )
+        ))}
+        
+        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+          <button 
+            className="page-link" 
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            aria-label="Siguiente"
+          >
+            <span aria-hidden="true">&raquo;</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+)}
             </div>
           </div>
         </div>
       )}
 
-      {!loading && (
-        <div className="row">
-          <div className="col-12">
-            <div className="card shadow-sm border border-secondary">
-              <div className="card-header bg-secondary text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 d-flex align-items-center fw-bold">
-                  Gestión de Asistencias
-                </h5>
-                <div className="d-flex align-items-center gap-2">
-                  <div className="position-relative" style={{ minWidth: "300px" }}>
-                    <i
-                      className="bi bi-search position-absolute"
-                      style={{
-                        left: "10px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#6c757d",
-                      }}
-                    ></i>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm ps-5"
-                      placeholder="Buscar por nombre, DNI o fecha..."
-                      value={searchTerm}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      style={{ paddingRight: searchTerm ? "35px" : "10px" }}
-                    />
-                    {searchTerm && (
-                      <button
-                        className="btn btn-link position-absolute p-0"
-                        style={{
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: "#6c757d",
-                        }}
-                        onClick={() => handleSearch("")}
-                      >
-                        <i className="bi bi-x-circle"></i>
-                      </button>
-                    )}
-                  </div>
-                </div>
+      {/* Modal Delete */}
+      {showDeleteModal && attendanceToDelete && (
+        <div 
+          className="modal fade show d-block" 
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}} 
+          onClick={() => setShowDeleteModal(false)}
+          tabIndex="-1"
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">¿Eliminar Registro?</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
               </div>
-
-              <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover table-bordered align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-3 text-muted">ID</th>
-                        <th className="py-3 text-muted">Empleado</th>
-                        <th className="py-3 text-muted text-center">DNI</th>
-                        <th className="py-3 text-muted text-center">Fecha</th>
-                        <th className="py-3 d-none d-lg-table-cell text-muted text-center">
-                          Entrada
-                        </th>
-                        <th className="py-3 d-none d-lg-table-cell text-muted text-center">
-                          Salida
-                        </th>
-                        <th className="py-3 d-none d-xl-table-cell text-muted text-center">
-                          Horas
-                        </th>
-                        <th className="py-3 text-muted text-center">Estado</th>
-                        <th className="py-3 d-none d-md-table-cell text-muted text-center">
-                          📍 Ubicación
-                        </th>
-                        <th className="py-3 text-end pe-4 text-muted">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {currentRecords.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan="10"
-                            className="text-center py-5 text-muted"
-                          >
-                            <i className="bi bi-inbox fs-1 d-block mb-2"></i>
-                            {searchTerm
-                              ? "No se encontraron coincidencias"
-                              : "No hay registros de asistencia"}
-                          </td>
-                        </tr>
-                      ) : (
-                        currentRecords.map((a) => (
-                          <tr key={a.id}>
-                            <td className="px-4">
-                              <span className="badge bg-secondary">#{a.id}</span>
-                            </td>
-                            <td>
-                              <strong className="text-dark">
-                                {a.firstName} {a.lastName}
-                              </strong>
-                            </td>
-                            <td className="text-center">
-                              <span className="text-muted">{a.dni}</span>
-                            </td>
-                            <td className="text-center">
-                              <span className="text-muted">
-                                {formatDate(a.date)}
-                              </span>
-                            </td>
-                            <td className="text-center d-none d-lg-table-cell">
-                              {a.checkIn ? (
-                                <span className="badge bg-info text-dark">
-                                  {new Date(a.checkIn).toLocaleTimeString(
-                                    "es-ES",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-muted">—</span>
-                              )}
-                            </td>
-                            <td className="text-center d-none d-lg-table-cell">
-                              {a.checkOut ? (
-                                <span className="badge bg-warning text-dark">
-                                  {new Date(a.checkOut).toLocaleTimeString(
-                                    "es-ES",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-muted">—</span>
-                              )}
-                            </td>
-                            <td className="text-center d-none d-xl-table-cell">
-                              <span className="badge bg-primary">
-                                {a.totalHoursFormatted || "—"}
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              {getStatusBadge(a.status)}
-                            </td>
-                            <td className="d-none d-md-table-cell">
-                              <div className="d-flex flex-column align-items-center gap-1">
-                                {a.checkInLatitude && a.checkInLongitude ? (
-                                  <>
-                                    <span
-                                      className={`badge ${
-                                        a.locationValid
-                                          ? "bg-success"
-                                          : "bg-danger"
-                                      }`}
-                                    >
-                                      <i
-                                        className={`bi ${
-                                          a.locationValid
-                                            ? "bi-geo-alt-fill"
-                                            : "bi-exclamation-triangle-fill"
-                                        } me-1`}
-                                      ></i>
-                                      {a.locationValid ? "Válida" : "Fuera"}
-                                    </span>
-                                    <small className="text-muted">
-                                      <i className="bi bi-pin-map me-1"></i>
-                                      {a.distanceFromOffice
-                                        ? `${Math.round(a.distanceFromOffice)}m`
-                                        : "N/A"}
-                                    </small>
-                                    <a
-                                      href={`https://www.google.com/maps?q=${a.checkInLatitude},${a.checkInLongitude}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="btn btn-sm btn-outline-primary"
-                                      title="Ver en Google Maps"
-                                    >
-                                      <i className="bi bi-map"></i>
-                                    </a>
-                                  </>
-                                ) : (
-                                  <span className="badge bg-secondary">
-                                    <i className="bi bi-question-circle me-1"></i>
-                                    Sin GPS
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="text-end pe-4">
-                              <div className="d-flex justify-content-end gap-2">
-                                <button
-                                  className="btn btn-danger btn-sm"
-                                  onClick={() => handleDelete(a.id)}
-                                  title="Eliminar"
-                                >
-                                  <i className="bi bi-trash"></i>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Paginación */}
-                {filteredAttendance.length > recordsPerPage && (
-                  <div className="d-flex justify-content-between align-items-center px-4 py-3 border-top">
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={handlePrevious}
-                      disabled={currentPage === 1}
-                    >
-                      <i className="bi bi-chevron-left me-1"></i>
-                      Anterior
-                    </button>
-
-                    <span className="fw-semibold">
-                      Página {currentPage} de {totalPages}
-                    </span>
-
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleNext}
-                      disabled={currentPage === totalPages}
-                    >
-                      Siguiente
-                      <i className="bi bi-chevron-right ms-1"></i>
-                    </button>
-                  </div>
-                )}
+              <div className="modal-body">
+                <p>¿Estás seguro de eliminar el registro de asistencia de <strong>"{attendanceToDelete.firstName} {attendanceToDelete.lastName}"</strong> del día <strong>{formatDateSafe(attendanceToDelete.date)}</strong>?</p>
+                <p className="text-muted small">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDelete}
+                >
+                  Eliminar
+                </button>
               </div>
             </div>
           </div>

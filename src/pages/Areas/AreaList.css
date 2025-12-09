@@ -1,8 +1,239 @@
 .table thead th {
+  background-color: #5c81d8  !important;
+  color: #f3eded !important;
+}
+
+
+
+/*.table thead th {
   background-color: #c5c8ca !important;
-}
+}*/
 
-.table-hover thead tr:hover th {
+/*.table-hover thead tr:hover th {
   background-color: #c5c5c5 !important;
+}*/
+
+/* AreaList.css - Estilo SB Admin 2 */
+
+/* Variables de color SB Admin 2 */
+:root {
+  --primary: #4e73df;
+  --secondary: #858796;
+  --success: #1cc88a;
+  --info: #36b9cc;
+  --warning: #f6c23e;
+  --danger: #e74a3b;
+  --light: #f8f9fc;
+  --dark: #5a5c69;
+  --gray-100: #f8f9fc;
+  --gray-200: #eaecf4;
+  --gray-300: #dddfeb;
+  --gray-400: #d1d3e2;
+  --gray-500: #b7b9cc;
+  --gray-600: #858796;
+  --gray-700: #6e707e;
+  --gray-800: #5a5c69;
+  --gray-900: #3a3b45;
 }
 
+/* Headings SB Admin 2 */
+.h3 {
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.text-gray-800 {
+  color: var(--gray-800) !important;
+}
+
+/* Buttons SB Admin 2 */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: #2e59d9;
+  border-color: #2653d4;
+}
+
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem 0 rgba(58, 59, 69, 0.2) !important;
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Card SB Admin 2 */
+.card {
+  border: 1px solid var(--gray-300);
+  border-radius: 0.35rem;
+}
+
+.card.shadow {
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.card-header {
+  background-color: var(--gray-100);
+  border-bottom: 1px solid var(--gray-300);
+  padding: 0.75rem 1.25rem;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+.font-weight-bold {
+  font-weight: 700 !important;
+}
+
+.text-primary {
+  color: var(--primary) !important;
+}
+
+/* Table SB Admin 2 */
+.table-bordered {
+  border: 1px solid var(--gray-300);
+}
+
+.table-bordered thead th,
+.table-bordered thead td {
+  border-bottom-width: 2px;
+}
+
+.table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--gray-300);
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--gray-300);
+}
+
+.table td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  font-size: 0.875rem;
+  color: var(--gray-800);
+}
+
+.table tfoot th {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem;
+  border-top: 2px solid var(--gray-300);
+}
+
+/* Hover effect */
+.table tbody tr:hover {
+  background-color: var(--gray-100);
+}
+
+/* Responsive table */
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Buttons in table */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.2rem;
+}
+
+.btn-warning {
+  background-color: var(--warning);
+  border-color: var(--warning);
+  color: #fff;
+}
+
+.btn-warning:hover {
+  background-color: #dda20a;
+  border-color: #d39e00;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-danger:hover {
+  background-color: #be2617;
+  border-color: #b02218;
+}
+
+/* Margins y paddings utilities */
+.mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.me-1 {
+  margin-right: 0.25rem !important;
+}
+
+.py-3 {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+.py-4 {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+.m-0 {
+  margin: 0 !important;
+}
+
+/* Modal */
+.modal-content {
+  border: 1px solid var(--gray-300);
+  border-radius: 0.35rem;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--gray-300);
+  padding: 1rem 1.5rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--gray-300);
+  padding: 1rem 1.5rem;
+}
+
+/* Text utilities */
+.text-muted {
+  color: var(--gray-600) !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
+
+.small {
+  font-size: 0.875rem;
+}

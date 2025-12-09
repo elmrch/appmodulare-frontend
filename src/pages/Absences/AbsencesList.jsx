@@ -51,6 +51,8 @@ const AbsencesList = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Limpiamos los resultados anteriores para evitar mostrar datos obsoletos
+    setAbsences([]); 
     
     try {
       const response = await absenceService.getAbsences(filters);

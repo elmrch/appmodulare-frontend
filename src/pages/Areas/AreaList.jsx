@@ -13,6 +13,8 @@ const AreaList = () => {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
+
+
   useEffect(() => {
     loadAreas();
   }, []);
@@ -70,117 +72,86 @@ const AreaList = () => {
   };
 
   return (
-    <div className="container-fluid px-4 py-4">
+    <div className="container-fluid">
       {/* Alert */}
       {alert && (
-        <div className="row mb-3">
-          <div className="col-12">
-            <AlertNotification
-              type={alert.type}
-              message={alert.message}
-              onClose={() => setAlert(null)}
-            />
-          </div>
-        </div>
+        <AlertNotification
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+        />
       )}
 
-      {/* Header */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div>
-              <h2 className="mb-2 fw-bold">
-                <i className="bi bi-building-fill me-2"></i>
-                Gestión de Áreas
-              </h2>
-              <p className="text-muted mb-0">{areas.length} áreas registradas</p>
-            </div>
-            
-            <div>
-              <button className="btn btn-primary d-flex align-items-center" onClick={handleNew}>
-                <i className="bi bi-plus-circle me-2"></i>
-                Nueva Área
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Page Heading */}
+      <div className="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 className="h3 mb-0 text-gray-800">Gestión de Áreas</h1>
+        <button 
+          className=" d-sm-inline-block btn btn-sm btn-primary shadow-sm" 
+          onClick={handleNew}
+        >
+          <i className="bi bi-plus-circle text-white-50 me-1"></i> Nueva Área
+        </button>
       </div>
+
+
 
       {/* Loading */}
       {loading && (
-        <div className="row">
-          <div className="col-12">
-            <div className="alert alert-info d-flex align-items-center" role="alert">
-              <div className="spinner-border spinner-border-sm me-2" role="status">
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-              Cargando áreas...
+        <div className="card shadow mb-4">
+          <div className="card-body text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
             </div>
+            <p className="text-muted mt-2 mb-0">Cargando áreas...</p>
           </div>
         </div>
       )}
 
-     {!loading && (
-  <div className="row">
-    <div className="col-12">
-      <div className="card shadow-sm border border-secondary ">
-  <div className="card-header bg-secondary text-white py-3 d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 d-flex align-items-center fw-bold">
-            <i className=""></i>
-            Gestión de Áreas
-          </h5>
-                      <div>
-              <button className="btn btn-primary d-flex align-items-center" onClick={handleNew}>
-                <i className="bi bi-plus-circle me-2"></i>
-                Nueva Área
-              </button>
-            </div>
-        </div>
-        
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover table-bordered align-middle mb-0">
-<thead>
-  <tr>
-    <th className="px-4 py-3 text-muted">ID</th>
-    <th className="py-3 text-muted">Nombre</th>
-    <th className="py-3 d-none d-md-table-cell text-muted">Descripción</th>
-    <th className="py-3 d-none d-lg-table-cell text-muted">Fecha Creación</th>
-    <th className="py-3 text-end pe-4 text-muted">Acciones</th>
-  </tr>
-</thead>
-              
-              <tbody>
-                {areas.length === 0 ? (
+      {/* DataTales Example */}
+      {!loading && (
+        <div className="card shadow mb-4">
+          <div className="card-header py-3">
+            <h6 className="m-0 font-weight-bold text-primary">Listado de Áreas</h6>
+          </div>
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="table " id="dataTable" width="100%" cellSpacing="0">
+                <thead>
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">
-                      <i className="bi bi-inbox fs-1 d-block mb-2"></i>
-                      No hay áreas registradas
-                    </td>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th className="d-none d-md-table-cell">Descripción</th>
+                    <th className="d-none d-lg-table-cell">Fecha Creación</th>
+                    <th>Acciones</th>
                   </tr>
-                ) : (
-                  areas.map((area) => (
-                    <tr key={area.id}>
-                      <td className="px-4">
-                        <span className="badge bg-secondary">#{area.id}</span>
+                </thead>
+
+                <tbody>
+                  {areas.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-4 text-muted">
+                        <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                        No hay áreas registradas
                       </td>
-                      <td>
-                        <strong className="text-dark">{area.name}</strong>
-                      </td>
-                      <td className="d-none d-md-table-cell ">
-                        {area.description || '-'}
-                      </td>
-                      <td className="d-none d-lg-table-cell ">
-                        {new Date(area.createdAt).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="d-flex justify-content-end gap-2">
+                    </tr>
+                  ) : (
+                    areas.map((area) => (
+                      <tr key={area.id}>
+                        <td>{area.id}</td>
+                        <td>{area.name}</td>
+                        <td className="d-none d-md-table-cell">
+                          {area.description || '-'}
+                        </td>
+                        <td className="d-none d-lg-table-cell">
+                          {new Date(area.createdAt).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          })}
+                        </td>
+                        <td>
                           <button 
-                            className="btn btn-warning btn-sm"
+                            className="btn btn-warning btn-sm me-1"
                             onClick={() => handleEdit(area)}
                             title="Editar"
                           >
@@ -193,29 +164,25 @@ const AreaList = () => {
                           >
                             <i className="bi bi-trash"></i>
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-{/* Formulario de creación/edición */}
+      )}
+      {/* Formulario de creación/edición */}
       {showModal && (
         <div className="row mb-4">
           <div className="col-12">
-            <div className="card shadow-sm border border-primary">
-              <div className="card-header bg-primary text-white py-3">
-                <h5 className="mb-0 d-flex align-items-center fw-bold">
-                  <i className={`bi ${selectedArea ? 'bi-pencil-square' : 'bi-plus-circle'} me-2`}></i>
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="m-0 font-weight-bold text-primary">
                   {selectedArea ? 'Editar Área' : 'Nueva Área'}
-                </h5>
+                </h6>
               </div>
               <div className="card-body">
                 <AreaForm 
@@ -231,21 +198,6 @@ const AreaList = () => {
           </div>
         </div>
       )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="row">
-          <div className="col-12">
-            <div className="alert alert-info d-flex align-items-center" role="alert">
-              <div className="spinner-border spinner-border-sm me-2" role="status">
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-              Cargando áreas...
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Delete */}
       {showDeleteModal && areaToDelete && (
         <div 
@@ -256,24 +208,20 @@ const AreaList = () => {
         >
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title d-flex align-items-center">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  Confirmar Eliminación
-                </h5>
+              <div className="modal-header">
+                <h5 className="modal-title">¿Eliminar Área?</h5>
                 <button 
                   type="button" 
-                  className="btn-close btn-close-white" 
+                  className="btn-close" 
                   onClick={() => setShowDeleteModal(false)}
                   aria-label="Close"
                 ></button>
               </div>
-              <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar esta área?</p>
-                <p className="fs-5 fw-bold text-danger mb-2">{areaToDelete.name}</p>
-                <p className="text-muted small mb-0">Esta acción no se puede deshacer</p>
+              <div className="modal-body">
+                <p>¿Estás seguro de eliminar el área <strong>"{areaToDelete.name}"</strong>?</p>
+                <p className="text-muted small">Esta acción no se puede deshacer.</p>
               </div>
-              <div className="modal-footer justify-content-center gap-2">
+              <div className="modal-footer">
                 <button 
                   type="button" 
                   className="btn btn-secondary" 
@@ -286,8 +234,7 @@ const AreaList = () => {
                   className="btn btn-danger" 
                   onClick={handleDelete}
                 >
-                  <i className="bi bi-trash me-1"></i>
-                  Sí, Eliminar
+                  Eliminar
                 </button>
               </div>
             </div>

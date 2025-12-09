@@ -20,7 +20,8 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
     position: "",
     salary: "",
     scheduleId: "",
-    photoUrl: ""
+    photoUrl: "",
+    photo: null, // Para el archivo de imagen
   });
 
   const [touched, setTouched] = useState({
@@ -37,6 +38,8 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
     scheduleId: true,
     photoUrl: true
   });
+
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -60,8 +63,10 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
         position: employee.position ?? "",
         salary: employee.salary ?? "",
         scheduleId: employee.scheduleId ?? "",
-        photoUrl: employee.photoUrl ?? ""
+        photoUrl: employee.photoUrl ?? "",
+        photo: null,
       });
+      setPhotoPreview(employee.photoUrl);
     }
   }, [employee]);
 
@@ -91,37 +96,107 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (employee) {
-        await employeeService.update(employee.id, formData);
-      } else {
-        await employeeService.create(formData);
-      }
-      onSave(!!employee);
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error al guardar empleado");
-    } finally {
-      setLoading(false);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({ ...formData, photo: file });
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    // 1. Preparamos los datos del empleado (SIN la foto)
+    const employeeData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      dni: formData.dni,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      address: formData.address || null,
+      hireDate: formData.hireDate,
+      areaId: formData.areaId,
+      position: formData.position || null,
+      salary: formData.salary || null,
+      scheduleId: formData.scheduleId,
+    };
+
+    console.log('1. Datos del empleado a enviar:', employeeData);
+
+    let employeeId;
+
+    // 2. Crear o actualizar el empleado
+    if (employee) {
+      console.log('2. Actualizando empleado ID:', employee.id);
+      await employeeService.update(employee.id, employeeData);
+      employeeId = employee.id;
+      console.log('3. Empleado actualizado');
+    } else {
+      console.log('2. Creando nuevo empleado');
+      const response = await employeeService.create(employeeData);
+      employeeId = response.data.id;
+      console.log('3. Empleado creado con ID:', employeeId);
+    }
+
+    // 3. Si hay una foto nueva, la subimos
+    if (formData.photo) {
+      console.log('4. Subiendo foto para empleado ID:', employeeId);
+      console.log('5. Archivo:', formData.photo);
+      
+      await employeeService.uploadPhoto(employeeId, formData.photo);
+      
+      console.log('6. Foto subida exitosamente');
+    }
+
+    alert(`Empleado ${employee ? 'actualizado' : 'creado'} exitosamente`);
+    onSave(!!employee);
+
+  } catch (error) {
+    console.error("Error completo:", error);
+    console.error("Error config:", error.config);
+    console.error("Error response:", error.response);
+    
+    const errorMessage = error.response?.data?.message 
+      || error.message 
+      || "Error al guardar el empleado. Revisa la consola para más detalles.";
+    
+    alert(errorMessage);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Función para determinar la clase de validación
   const getValidationClass = (fieldName, isRequired = false) => {
-    if (isRequired) {
-      return formData[fieldName]?.toString().trim() ? 'is-valid' : 'is-invalid';
+    const value = formData[fieldName]?.toString().trim();
+
+    if (fieldName === 'dni') {
+      return value.length === 8 ? 'is-valid' : 'is-invalid';
+    } else if (isRequired) {
+      return value ? 'is-valid' : 'is-invalid';
     }
-    return formData[fieldName]?.toString().trim() ? 'is-valid' : '';
+    
+    // For optional fields, only show valid if there's a value
+    return value ? 'is-valid' : '';
   };
+
+  // Determina si el formulario es válido para habilitar/deshabilitar el botón de guardado
+  const isFormValid =
+    formData.firstName.trim() !== "" &&
+    formData.lastName.trim() !== "" &&
+    formData.dni.trim().length === 8 &&
+    formData.hireDate.trim() !== "" &&
+    formData.areaId !== "" &&
+    formData.scheduleId !== "";
 
   return (
     <form onSubmit={handleSubmit}>
       {/* DATOS PERSONALES */}
-      <div className="mb-4">
+      <div className="mb-4" id="employee-form">
         <h6 className="text-primary fw-bold mb-3">
           <i className="bi bi-person me-2"></i>Datos Personales
         </h6>
@@ -143,6 +218,7 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
                 El nombre es obligatorio
               </div>
             )}
+         
           </div>
 
           <div className="col-md-6 mb-3">
@@ -166,7 +242,7 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
 
         <div className="row">
           <div className="col-md-4 mb-3">
-            <label className="form-label fw-semibold">DNI *</label>
+            <label className="form-label fw-semibold" >DNI *</label>
             <input
               type="text"
               name="dni"
@@ -177,9 +253,9 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
               maxLength={8}
               required
             />
-            {!formData.dni.trim() && (
+            {formData.dni.trim().length !== 8 && (
               <div className="invalid-feedback d-block">
-                El DNI es obligatorio
+                El DNI debe tener 8 caracteres
               </div>
             )}
           </div>
@@ -319,16 +395,28 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
             )}
           </div>
 
-          <div className="col-md-4 mb-3">
-            <label className="form-label fw-semibold">Foto URL</label>
-            <input
-              type="text"
-              name="photoUrl"
-              className={`form-control ${getValidationClass('photoUrl', false)}`}
-              value={formData.photoUrl}
-              onChange={handleChange}
-              placeholder="https://..."
-            />
+          <div className="col-md-4 mb-3 d-flex flex-column">
+            <label className="form-label fw-semibold">Foto</label>
+            <div className="d-flex align-items-center gap-3">
+              {photoPreview ? (
+                <img 
+                  src={photoPreview} 
+                  alt="Vista previa" 
+                  className="rounded-circle"
+                    style={{ width: "70px", height: "70px", objectFit: "contain", background: "#f0f0f0" }}
+
+                />
+              ) : (
+                <i className="bi bi-person-circle fs-2 text-muted"></i>
+              )}
+              <input
+                type="file"
+                name="photo"
+                className="form-control"
+                onChange={handleFileChange}
+                accept="image/png, image/jpeg, image/jpg"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -339,7 +427,7 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
           <i className="bi bi-x-circle me-1"></i>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-success" disabled={loading}>
+        <button type="submit" className="btn btn-success" disabled={loading || !isFormValid}>
           {loading ? (
             <>
               <span className="spinner-border spinner-border-sm me-2"></span>
