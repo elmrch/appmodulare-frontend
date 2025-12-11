@@ -42,6 +42,7 @@ const Sidebar = () => {
      { path: '/absences', icon: '🚫', label: 'Ausencias', color: '#ff4d4d' },
   { path: '/visitas', icon: '🪪', label: 'Visitas', color: '#20c997' },
   { path: '/bitácora ', icon: '📝', label: 'bitácora ', color: '#20c997' },
+   { path: '/usersroles ', icon: '📝', label: 'usuario ', color: '#20c997' },
 
   ];
 

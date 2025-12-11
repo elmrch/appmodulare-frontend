@@ -85,12 +85,6 @@ const AreaList = () => {
       {/* Page Heading */}
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 className="h3 mb-0 text-gray-800">Gestión de Áreas</h1>
-        <button 
-          className=" d-sm-inline-block btn btn-sm btn-primary shadow-sm" 
-          onClick={handleNew}
-        >
-          <i className="bi bi-plus-circle text-white-50 me-1"></i> Nueva Área
-        </button>
       </div>
 
 
@@ -110,8 +104,15 @@ const AreaList = () => {
       {/* DataTales Example */}
       {!loading && (
         <div className="card shadow mb-4">
-          <div className="card-header py-3">
+          <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 className="m-0 font-weight-bold text-primary">Listado de Áreas</h6>
+            <button 
+              className="btn btn-sm btn-primary shadow-sm" 
+              onClick={handleNew}
+            >
+              <i className="bi bi-plus-circle text-white-50 me-1"></i> 
+              <span className="d-none d-sm-inline">Nueva Área</span>
+            </button>
           </div>
           <div className="card-body">
             <div className="table-responsive">

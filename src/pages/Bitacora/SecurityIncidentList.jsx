@@ -308,28 +308,6 @@ const SecurityIncidentList = () => {
 
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 className="h3 mb-0 text-gray-800">Incidentes de Seguridad</h1>
-        <div className="d-flex gap-2">
-          <button 
-            className=" d-sm-inline-block btn btn-sm btn-success shadow-sm"
-            onClick={exportToExcel}
-            disabled={incidents.length === 0}
-          >
-            <i className="bi bi-file-earmark-excel text-white-50 me-1"></i> Excel
-          </button>
-          <button 
-            className=" d-sm-inline-block btn btn-sm btn-danger shadow-sm"
-            onClick={exportToPDF}
-            disabled={incidents.length === 0}
-          >
-            <i className="bi bi-file-earmark-pdf text-white-50 me-1"></i> PDF
-          </button>
-          <button 
-            className=" d-sm-inline-block btn btn-sm btn-primary shadow-sm" 
-            onClick={handleNew}
-          >
-            <i className="bi bi-plus-circle text-white-50 me-1"></i> Nuevo Incidente
-          </button>
-        </div>
       </div>
 
       {loading && (
@@ -346,6 +324,31 @@ const SecurityIncidentList = () => {
       {!loading && (
         <>
           <div className="card shadow mb-4">
+            <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+              <h6 className="m-0 font-weight-bold text-primary">Listado de Incidentes</h6>
+              <div className="d-flex gap-2">
+                <button 
+                  className="btn btn-sm btn-success shadow-sm"
+                  onClick={exportToExcel}
+                  disabled={incidents.length === 0}
+                >
+                  <i className="bi bi-file-earmark-excel me-1"></i> 
+                  <span className="d-none d-sm-inline">Excel</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-danger shadow-sm"
+                  onClick={exportToPDF}
+                  disabled={incidents.length === 0}
+                >
+                  <i className="bi bi-file-earmark-pdf me-1"></i> 
+                  <span className="d-none d-sm-inline">PDF</span>
+                </button>
+                <button className="btn btn-sm btn-primary shadow-sm" onClick={handleNew}>
+                  <i className="bi bi-plus-circle me-1"></i>
+                  <span className="d-none d-sm-inline">Nuevo Incidente</span>
+                </button>
+              </div>
+            </div>
             <div className="card-body">
               <div className="input-group">
                 <span className="input-group-text">
