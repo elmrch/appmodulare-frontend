@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { employeeService } from "../../services/employeeService";
 import { areaService } from "../../services/areaService";
 import { scheduleService } from "../../services/scheduleService";
-import "./EmployeeList.css"; // Usa los mismos estilos
 
 const EmployeeForm = ({ employee, onClose, onSave }) => {
   const [areas, setAreas] = useState([]);
@@ -21,13 +20,31 @@ const EmployeeForm = ({ employee, onClose, onSave }) => {
     position: "",
     salary: "",
     scheduleId: "",
-    photoUrl: ""
+    photoUrl: "",
+    photo: null, // Para el archivo de imagen
   });
-const formatDate = (dateString) => {
-  if (!dateString) return "";
-  return dateString.split("T")[0];
-};
 
+  const [touched, setTouched] = useState({
+    firstName: true,
+    lastName: true,
+    dni: true,
+    email: true,
+    phone: true,
+    address: true,
+    hireDate: true,
+    areaId: true,
+    position: true,
+    salary: true,
+    scheduleId: true,
+    photoUrl: true
+  });
+
+  const [photoPreview, setPhotoPreview] = useState(null);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return dateString.split("T")[0];
+  };
 
   useEffect(() => {
     loadAreas();
@@ -46,8 +63,10 @@ const formatDate = (dateString) => {
         position: employee.position ?? "",
         salary: employee.salary ?? "",
         scheduleId: employee.scheduleId ?? "",
-        photoUrl: employee.photoUrl ?? ""
+        photoUrl: employee.photoUrl ?? "",
+        photo: null,
       });
+      setPhotoPreview(employee.photoUrl);
     }
   }, [employee]);
 
@@ -76,251 +95,353 @@ const formatDate = (dateString) => {
       [name]: (name === "areaId" || name === "scheduleId") ? Number(value) : value
     });
   };
-// --- CORRECCIÓN DE FECHA PARA EVITAR TIMEZONE ---
-const fixDate = (date) => {
-  if (!date) return null;
-  const d = new Date(date);
-  const corrected = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-  return corrected.toISOString().split("T")[0];
-};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (employee) {
-        await employeeService.update(employee.id, formData);
-      } else {
-        await employeeService.create(formData);
-      }
-     onSave(!!employee);
-
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error al guardar empleado");
-    } finally {
-      setLoading(false);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({ ...formData, photo: file });
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div className="modal-glass-backdrop" onClick={onClose}></div>
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-      {/* Modal */}
-      <div className="modal-glass">
+  try {
+    // 1. Preparamos los datos del empleado (SIN la foto)
+    const employeeData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      dni: formData.dni,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      address: formData.address || null,
+      hireDate: formData.hireDate,
+      areaId: formData.areaId,
+      position: formData.position || null,
+      salary: formData.salary || null,
+      scheduleId: formData.scheduleId,
+    };
+
+    console.log('1. Datos del empleado a enviar:', employeeData);
+
+    let employeeId;
+
+    // 2. Crear o actualizar el empleado
+    if (employee) {
+      console.log('2. Actualizando empleado ID:', employee.id);
+      await employeeService.update(employee.id, employeeData);
+      employeeId = employee.id;
+      console.log('3. Empleado actualizado');
+    } else {
+      console.log('2. Creando nuevo empleado');
+      const response = await employeeService.create(employeeData);
+      employeeId = response.data.id;
+      console.log('3. Empleado creado con ID:', employeeId);
+    }
+
+    // 3. Si hay una foto nueva, la subimos
+    if (formData.photo) {
+      console.log('4. Subiendo foto para empleado ID:', employeeId);
+      console.log('5. Archivo:', formData.photo);
+      
+      await employeeService.uploadPhoto(employeeId, formData.photo);
+      
+      console.log('6. Foto subida exitosamente');
+    }
+
+    alert(`Empleado ${employee ? 'actualizado' : 'creado'} exitosamente`);
+    onSave(!!employee);
+
+  } catch (error) {
+    console.error("Error completo:", error);
+    console.error("Error config:", error.config);
+    console.error("Error response:", error.response);
+    
+    const errorMessage = error.response?.data?.message 
+      || error.message 
+      || "Error al guardar el empleado. Revisa la consola para más detalles.";
+    
+    alert(errorMessage);
+
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Función para determinar la clase de validación
+  const getValidationClass = (fieldName, isRequired = false) => {
+    const value = formData[fieldName]?.toString().trim();
+
+    if (fieldName === 'dni') {
+      return value.length === 8 ? 'is-valid' : 'is-invalid';
+    } else if (isRequired) {
+      return value ? 'is-valid' : 'is-invalid';
+    }
+    
+    // For optional fields, only show valid if there's a value
+    return value ? 'is-valid' : '';
+  };
+
+  // Determina si el formulario es válido para habilitar/deshabilitar el botón de guardado
+  const isFormValid =
+    formData.firstName.trim() !== "" &&
+    formData.lastName.trim() !== "" &&
+    formData.dni.trim().length === 8 &&
+    formData.hireDate.trim() !== "" &&
+    formData.areaId !== "" &&
+    formData.scheduleId !== "";
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* DATOS PERSONALES */}
+      <div className="mb-4" id="employee-form">
+        <h6 className="text-primary fw-bold mb-3">
+          <i className="bi bi-person me-2"></i>Datos Personales
+        </h6>
         
-        {/* Header */}
-        <div className="modal-glass-header">
-          <h5 className="modal-glass-title">
-            <i className={`bi ${employee ? "bi-pencil-square" : "bi-person-plus"}`}></i>
-            {employee ? "Editar Empleado" : "Nuevo Empleado"}
-          </h5>
-          <button className="btn-close-glass" onClick={onClose}>
-            <i className="bi bi-x-lg"></i>
-          </button>
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <label className="form-label fw-semibold">Nombres *</label>
+            <input
+              type="text"
+              name="firstName"
+              className={`form-control ${getValidationClass('firstName', true)}`}
+              value={formData.firstName}
+              onChange={handleChange}
+              placeholder="Ingrese nombres"
+              required
+            />
+            {!formData.firstName.trim() && (
+              <div className="invalid-feedback d-block">
+                El nombre es obligatorio
+              </div>
+            )}
+         
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label className="form-label fw-semibold">Apellidos *</label>
+            <input
+              type="text"
+              name="lastName"
+              className={`form-control ${getValidationClass('lastName', true)}`}
+              value={formData.lastName}
+              onChange={handleChange}
+              placeholder="Ingrese apellidos"
+              required
+            />
+            {!formData.lastName.trim() && (
+              <div className="invalid-feedback d-block">
+                El apellido es obligatorio
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="modal-glass-body">
-            
-            {/* DATOS PERSONALES */}
-            <div className="section-divider">
-              <span><i className="bi bi-person me-2"></i>Datos Personales</span>
-            </div>
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold" >DNI *</label>
+            <input
+              type="text"
+              name="dni"
+              className={`form-control ${getValidationClass('dni', true)}`}
+              value={formData.dni}
+              onChange={handleChange}
+              placeholder="12345678"
+              maxLength={8}
+              required
+            />
+            {formData.dni.trim().length !== 8 && (
+              <div className="invalid-feedback d-block">
+                El DNI debe tener 8 caracteres
+              </div>
+            )}
+          </div>
 
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label-glass">Nombres *</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="Ingrese nombres"
-                  required
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label-glass">Apellidos *</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Ingrese apellidos"
-                  required
-                />
-              </div>
-            </div>
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Email</label>
+            <input
+              type="email"
+              name="email"
+              className={`form-control ${getValidationClass('email', false)}`}
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="correo@ejemplo.com"
+            />
+          </div>
 
-            <div className="row">
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">DNI *</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="dni"
-                  value={formData.dni}
-                  onChange={handleChange}
-                  placeholder="12345678"
-                  maxLength={8}
-                  required
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Email</label>
-                <input
-                  type="email"
-                  className="form-control form-control-glass"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Teléfono</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="987654321"
-                />
-              </div>
-            </div>
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Teléfono</label>
+            <input
+              type="text"
+              name="phone"
+              className={`form-control ${getValidationClass('phone', false)}`}
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="987654321"
+            />
+          </div>
+        </div>
 
-            <div className="mb-3">
-              <label className="form-label-glass">Dirección</label>
+        <div className="row">
+          <div className="col-12 mb-3">
+            <label className="form-label fw-semibold">Dirección</label>
+            <input
+              type="text"
+              name="address"
+              className={`form-control ${getValidationClass('address', false)}`}
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Av. Ejemplo 123, Arequipa"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* DATOS LABORALES */}
+      <div className="mb-4">
+        <h6 className="text-primary fw-bold mb-3">
+          <i className="bi bi-briefcase me-2"></i>Datos Laborales
+        </h6>
+
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Fecha Ingreso *</label>
+            <input
+              type="date"
+              name="hireDate"
+              className={`form-control ${getValidationClass('hireDate', true)}`}
+              value={formData.hireDate}
+              onChange={handleChange}
+              required
+            />
+            {!formData.hireDate && (
+              <div className="invalid-feedback d-block">
+                La fecha de ingreso es obligatoria
+              </div>
+            )}
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Área *</label>
+            <select
+              name="areaId"
+              className={`form-select ${getValidationClass('areaId', true)}`}
+              value={formData.areaId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Seleccione área</option>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            {!formData.areaId && (
+              <div className="invalid-feedback d-block">
+                El área es obligatoria
+              </div>
+            )}
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Cargo</label>
+            <input
+              type="text"
+              name="position"
+              className={`form-control ${getValidationClass('position', false)}`}
+              value={formData.position}
+              onChange={handleChange}
+              placeholder="Ej: Supervisor"
+            />
+          </div>
+        </div>
+
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Sueldo (S/)</label>
+            <input
+              type="number"
+              step="0.01"
+              name="salary"
+              className={`form-control ${getValidationClass('salary', false)}`}
+              value={formData.salary}
+              onChange={handleChange}
+              placeholder="1500.00"
+            />
+          </div>
+
+          <div className="col-md-4 mb-3">
+            <label className="form-label fw-semibold">Horario *</label>
+            <select
+              name="scheduleId"
+              className={`form-select ${getValidationClass('scheduleId', true)}`}
+              value={formData.scheduleId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Seleccione horario</option>
+              {schedules.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.startTime} - {h.endTime}
+                </option>
+              ))}
+            </select>
+            {!formData.scheduleId && (
+              <div className="invalid-feedback d-block">
+                El horario es obligatorio
+              </div>
+            )}
+          </div>
+
+          <div className="col-md-4 mb-3 d-flex flex-column">
+            <label className="form-label fw-semibold">Foto</label>
+            <div className="d-flex align-items-center gap-3">
+              {photoPreview ? (
+                <img 
+                  src={photoPreview} 
+                  alt="Vista previa" 
+                  className="rounded-circle"
+                    style={{ width: "70px", height: "70px", objectFit: "contain", background: "#f0f0f0" }}
+
+                />
+              ) : (
+                <i className="bi bi-person-circle fs-2 text-muted"></i>
+              )}
               <input
-                type="text"
-                className="form-control form-control-glass"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Av. Ejemplo 123, Arequipa"
+                type="file"
+                name="photo"
+                className="form-control"
+                onChange={handleFileChange}
+                accept="image/png, image/jpeg, image/jpg"
               />
             </div>
-
-            {/* DATOS LABORALES */}
-            <div className="section-divider">
-              <span><i className="bi bi-briefcase me-2"></i>Datos Laborales</span>
-            </div>
-
-            <div className="row">
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Fecha Ingreso *</label>
-                <input
-                  type="date"
-                  className="form-control form-control-glass"
-                  name="hireDate"
-                  value={formData.hireDate}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Área *</label>
-                <select
-                  name="areaId"
-                  className="form-select form-select-glass"
-                  value={formData.areaId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Seleccione área</option>
-                  {areas.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Cargo</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="position"
-                  value={formData.position}
-                  onChange={handleChange}
-                  placeholder="Ej: Supervisor"
-                />
-              </div>
-            </div>
-
-            <div className="row">
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Sueldo (S/)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-control form-control-glass"
-                  name="salary"
-                  value={formData.salary}
-                  onChange={handleChange}
-                  placeholder="1500.00"
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Horario *</label>
-                <select
-                  name="scheduleId"
-                  className="form-select form-select-glass"
-                  value={formData.scheduleId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Seleccione horario</option>
-                  {schedules.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.startTime} - {h.endTime}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-4 mb-3">
-                <label className="form-label-glass">Foto URL</label>
-                <input
-                  type="text"
-                  className="form-control form-control-glass"
-                  name="photoUrl"
-                  value={formData.photoUrl}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-
           </div>
-
-          {/* Footer */}
-          <div className="modal-glass-footer">
-            <button type="button" className="btn btn-cancel" onClick={onClose}>
-              <i className="bi bi-x-circle me-2"></i>Cancelar
-            </button>
-            <button type="submit" className="btn btn-save" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2"></span>
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-check-circle me-2"></i>
-                  {employee ? "Actualizar" : "Guardar"}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </>
+
+      {/* BOTONES */}
+      <div className="d-flex justify-content-end gap-2 mt-4">
+        <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+          <i className="bi bi-x-circle me-1"></i>
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-success" disabled={loading || !isFormValid}>
+          {loading ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2"></span>
+              Guardando...
+            </>
+          ) : (
+            <>
+              <i className={`bi ${employee ? 'bi-check-circle' : 'bi-save'} me-1`}></i>
+              {employee ? 'Actualizar' : 'Guardar'}
+            </>
+          )}
+        </button>
+      </div>
+    </form>
   );
 };
 

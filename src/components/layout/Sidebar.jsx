@@ -8,22 +8,25 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('Usuario');
   const [userEmail, setUserEmail] = useState('usuario@email.com');
+  const [userRole, setUserRole] = useState(''); // Inicialmente vacío
   const [isOpen, setIsOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
 
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     const storedEmail = localStorage.getItem('email');
+    const storedRole = localStorage.getItem('role') || 'user'; // Obtener rol, por defecto 'user'
     
     if (storedUsername) setUsername(storedUsername);
     if (storedEmail) setUserEmail(storedEmail);
+    setUserRole(storedRole); // ← NUEVO: guardar rol en estado
   }, []);
 
   const handleLogout = () => {
     userService.logout();
     localStorage.removeItem('username');
     localStorage.removeItem('email');
+    localStorage.removeItem('role'); // ← NUEVO: limpiar rol
     navigate('/login-admin');
   };
 
@@ -31,19 +34,27 @@ const Sidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  const menuItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard', color: '#0d6efd' },
-    { path: '/areas', icon: '🏢', label: 'Áreas', color: '#6610f2' },
-    { path: '/schedules', icon: '⏰', label: 'Horarios', color: '#6f42c1' },
-    { path: '/employees', icon: '👥', label: 'Empleados', color: '#d63384' },
-    { path: '/attendance', icon: '✅', label: 'Asistencias', color: '#198754' },
-    { path: '/users', icon: '👤', label: 'Usuarios', color: '#0dcaf0' },
-      { path: '/reports', icon: '📑', label: 'Reportes', color: '#fd7e14' },
-     { path: '/absences', icon: '🚫', label: 'Ausencias', color: '#ff4d4d' },
-  { path: '/visitas', icon: '🪪', label: 'Visitas', color: '#20c997' },
-  { path: '/bitácora ', icon: '📝', label: 'bitácora ', color: '#20c997' },
+  // ========== DEFINIR TODOS LOS MÓDULOS CON SUS ROLES ==========
+  const allMenuItems = [
+    { path: '/dashboard', icon: '📊', label: 'Dashboard', color: '#0d6efd', roles: ['admin'] },
+    { path: '/areas', icon: '🏢', label: 'Áreas', color: '#6610f2', roles: ['admin'] },
+    { path: '/schedules', icon: '⏰', label: 'Horarios', color: '#6f42c1', roles: ['admin'] },
+    { path: '/employees', icon: '👥', label: 'Empleados', color: '#d63384', roles: ['admin'] },
+    { path: '/attendance', icon: '✅', label: 'Asistencias', color: '#198754', roles: ['admin', 'user'] },
+    { path: '/reports', icon: '📑', label: 'Reportes', color: '#fd7e14', roles: ['admin'] },
+    { path: '/absences', icon: '🚫', label: 'Ausencias', color: '#ff4d4d', roles: ['admin'] },
+    { path: '/visitas', icon: '🪪', label: 'Visitas', color: '#20c997', roles: ['admin', 'user'] },
+        { path: '/users', icon: '👤', label: 'Usuarios', color: '#0dcaf0',roles:['admin','user'] },
 
+    { path: '/bitácora', icon: '📝', label: 'Bitácora', color: '#20c997', roles: ['admin', 'user'] },
+    { path: '/usersroles', icon: '👤', label: 'Lista usuarios', color: '#0dcaf0', roles: ['admin'] },
   ];
+
+  // ========== FILTRAR MÓDULOS SEGÚN EL ROL ==========
+  const menuItems = allMenuItems.filter(item => 
+    userRole && item.roles.includes(userRole)
+  );
+
 
   return (
     <>

@@ -5,28 +5,18 @@ import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
-const formatDateSafe = (dateString) => {
-  if (!dateString) return "—";
-  
-  if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
-    const [year, month, day] = dateString.split('T')[0].split('-');
-    return `${day}/${month}/${year}`;
-  }
-  
-  try {
-    const date = new Date(dateString);
-    return new Date(dateString).toLocaleDateString('es-PE');
-  } catch {
-    return "—";
-  }
-};
-
 const formatDateTime = (dateString) => {
   if (!dateString) return "—";
   
   try {
     const date = new Date(dateString);
-    return date.toLocaleString('es-PE');
+    return date.toLocaleString('es-PE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   } catch {
     return "—";
   }
@@ -42,6 +32,10 @@ const SecurityIncidentList = () => {
   const [incidentToDelete, setIncidentToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8);
 
   useEffect(() => {
     loadIncidents();
@@ -67,6 +61,7 @@ const SecurityIncidentList = () => {
 
   const handleSearch = (value) => {
     setSearchTerm(value);
+    setCurrentPage(1); // Reset a la primera página al buscar
     
     if (value.trim() === "") {
       setFilteredIncidents(incidents);
@@ -79,14 +74,70 @@ const SecurityIncidentList = () => {
       const incident = inc.incident?.toLowerCase() || "";
       const severity = inc.severity?.toLowerCase() || "";
       const reportedBy = inc.reportedBy?.toLowerCase() || "";
+      const description = inc.description?.toLowerCase() || "";
       
       return title.includes(searchLower) ||
              incident.includes(searchLower) || 
              severity.includes(searchLower) || 
-             reportedBy.includes(searchLower);
+             reportedBy.includes(searchLower) ||
+             description.includes(searchLower);
     });
 
     setFilteredIncidents(filtered);
+  };
+
+  // Cálculos de paginación
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredIncidents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredIncidents.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // Generar números de página
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      }
+    }
+    
+    return pageNumbers;
   };
 
   const openDeleteModal = (incident) => {
@@ -126,15 +177,21 @@ const SecurityIncidentList = () => {
 
   const getSeverityBadge = (severity) => {
     const badges = {
-      HIGH: "bg-danger",
-      MEDIUM: "bg-warning text-dark",
-      LOW: "bg-success"
+      HIGH: { class: "bg-danger", icon: "bi-exclamation-octagon-fill", text: "ALTA" },
+      MEDIUM: { class: "bg-warning text-dark", icon: "bi-exclamation-triangle-fill", text: "MEDIA" },
+      LOW: { class: "bg-success", icon: "bi-info-circle-fill", text: "BAJA" }
     };
-    return badges[severity] || "bg-secondary";
+    return badges[severity] || { class: "bg-secondary", icon: "bi-question-circle", text: severity };
   };
 
   const exportToPDF = () => {
     const dataToExport = filteredIncidents.length > 0 ? filteredIncidents : incidents;
+    
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
     const doc = new jsPDF('l', 'mm', 'a4');
     
     doc.setFontSize(20);
@@ -206,8 +263,14 @@ const SecurityIncidentList = () => {
   const exportToExcel = () => {
     const dataToExport = filteredIncidents.length > 0 ? filteredIncidents : incidents;
     
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
     const excelData = dataToExport.map(inc => ({
       'ID': inc.id,
+      'Título': inc.title,
       'Fecha y Hora': formatDateTime(inc.dateTime),
       'Severidad': inc.severity,
       'Incidente': inc.incident,
@@ -219,6 +282,7 @@ const SecurityIncidentList = () => {
 
     const colWidths = [
       { wch: 5 },
+      { wch: 25 },
       { wch: 20 },
       { wch: 12 },
       { wch: 50 },
@@ -232,7 +296,8 @@ const SecurityIncidentList = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid">
+      {/* Alert */}
       {alert && (
         <AlertNotification
           type={alert.type}
@@ -241,155 +306,264 @@ const SecurityIncidentList = () => {
         />
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 className="mb-0">🚨 Incidentes de Seguridad</h2>
-        
-        <div className="d-flex gap-2 flex-wrap">
-          <div className="btn-group" role="group">
-            <button 
-              className="btn btn-success btn-sm"
-              onClick={exportToExcel}
-              disabled={incidents.length === 0}
-              title="Exportar a Excel"
-            >
-              📊 Excel
-            </button>
-            <button 
-              className="btn btn-danger btn-sm"
-              onClick={exportToPDF}
-              disabled={incidents.length === 0}
-              title="Exportar a PDF"
-            >
-              📄 PDF
-            </button>
+      <div className="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 className="h3 mb-0 text-gray-800">Incidentes de Seguridad</h1>
+      </div>
+
+      {loading && (
+        <div className="card shadow mb-4">
+          <div className="card-body text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted mt-2 mb-0">Cargando incidentes...</p>
           </div>
-
-          <button className="btn btn-primary" onClick={handleNew}>
-            ➕ Nuevo Incidente
-          </button>
         </div>
-      </div>
-
-      <div className="mb-3">
-        <div className="input-group">
-          <span className="input-group-text bg-primary text-white">
-            🔍
-          </span>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar por incidente, severidad o reportado por..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {searchTerm && (
-            <button 
-              className="btn btn-outline-secondary" 
-              type="button"
-              onClick={() => handleSearch("")}
-              title="Limpiar búsqueda"
-            >
-              ✖
-            </button>
-          )}
-        </div>
-        {searchTerm && (
-          <small className="text-muted">
-            Mostrando {filteredIncidents.length} de {incidents.length} incidentes
-          </small>
-        )}
-      </div>
-
-      {loading && <div className="alert alert-info">Cargando incidentes...</div>}
+      )}
 
       {!loading && (
-        <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead className="table-dark">
-              <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Fecha y Hora</th>
-                <th>Severidad</th>
-                <th>Incidente</th>
-                <th>Reportado Por</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredIncidents.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center">
-                    {searchTerm ? "No se encontraron incidentes con ese criterio" : "No hay incidentes registrados"}
-                  </td>
-                </tr>
-              ) : (
-                filteredIncidents.map((inc) => (
-                  <tr key={inc.id}>
-                    <td>{inc.id}</td>
-                    <td><strong>{inc.title}</strong></td>
-                    <td>{formatDateTime(inc.dateTime)}</td>
-                    <td>
-                      <span className={`badge ${getSeverityBadge(inc.severity)}`}>
-                        {inc.severity}
-                      </span>
-                    </td>
-                    <td>{inc.incident}</td>
-                    <td>{inc.reportedBy || "—"}</td>
-                    <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                      <button
-                        className="btn btn-warning btn-sm me-2 px-2 py-1"
-                        onClick={() => handleEdit(inc)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm px-2 py-1"
-                        onClick={() => openDeleteModal(inc)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))
+        <>
+          <div className="card shadow mb-4">
+            <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+              <h6 className="m-0 font-weight-bold text-primary">Listado de Incidentes</h6>
+              <div className="d-flex gap-2">
+                <button 
+                  className="btn btn-sm btn-success shadow-sm"
+                  onClick={exportToExcel}
+                  disabled={incidents.length === 0}
+                >
+                  <i className="bi bi-file-earmark-excel me-1"></i> 
+                  <span className="d-none d-sm-inline">Excel</span>
+                </button>
+                <button 
+                  className="btn btn-sm btn-danger shadow-sm"
+                  onClick={exportToPDF}
+                  disabled={incidents.length === 0}
+                >
+                  <i className="bi bi-file-earmark-pdf me-1"></i> 
+                  <span className="d-none d-sm-inline">PDF</span>
+                </button>
+                <button className="btn btn-sm btn-primary shadow-sm" onClick={handleNew}>
+                  <i className="bi bi-plus-circle me-1"></i>
+                  <span className="d-none d-sm-inline">Nuevo Incidente</span>
+                </button>
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="input-group">
+                <span className="input-group-text">
+                  <i className="bi bi-search"></i>
+                </span>
+                <input
+                  type="text"
+                  className="form-control input-sm"
+                  placeholder="Buscar por incidente, severidad o reportado por..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+                {searchTerm && (
+                  <button 
+                    className="btn btn-outline-secondary" 
+                    type="button"
+                    onClick={() => handleSearch("")}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                )}
+              </div>
+              {searchTerm && (
+                <small className="text-muted d-block mt-2">
+                  Mostrando {filteredIncidents.length} de {incidents.length} incidentes
+                </small>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </div>
+
+          <div className="card shadow mb-4">
+            <div className="card-body">
+              <div className="table-responsive">
+                <table className="table" id="dataTable" width="100%" cellSpacing="0">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Título</th>
+                      <th className=" d-md-table-cell">Fecha y Hora</th>
+                      <th>Severidad</th>
+                      <th className=" d-lg-table-cell">Incidente</th>
+                      <th className=" d-xl-table-cell">Reportado Por</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredIncidents.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="text-center py-4 text-muted">
+                          <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                          {searchTerm ? 'No se encontraron incidentes' : 'No hay incidentes registrados'}
+                        </td>
+                      </tr>
+                    ) : (
+                      currentItems.map((inc) => {
+                        const severityInfo = getSeverityBadge(inc.severity);
+                        return (
+                          <tr key={inc.id}>
+                            <td>{inc.id}</td>
+                            <td>{inc.title}</td>
+                            <td className=" d-md-table-cell">
+                              {formatDateTime(inc.dateTime)}
+                            </td>
+                            <td>
+                              <span className={`badge ${severityInfo.class}`}>
+                                <i className={`${severityInfo.icon} me-1`}></i>
+                                {severityInfo.text}
+                              </span>
+                            </td>
+                            <td className=" d-lg-table-cell">
+                              {inc.incident}
+                            </td>
+                            <td className=" d-xl-table-cell">
+                              {inc.reportedBy || "—"}
+                            </td>
+                            <td>
+                              <button 
+                                className="btn btn-warning btn-sm me-1"
+                                onClick={() => handleEdit(inc)}
+                                title="Editar"
+                              >
+                                <i className="bi bi-pencil"></i>
+                              </button>
+                              <button 
+                                className="btn btn-danger btn-sm"
+                                onClick={() => openDeleteModal(inc)}
+                                title="Eliminar"
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              {filteredIncidents.length > 0 && totalPages > 1 && (
+                <div className="d-flex justify-content-between align-items-center mt-3">
+                  <div className="text-muted small">
+                    Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredIncidents.length)} de {filteredIncidents.length} registros
+                  </div>
+                  
+                  <nav aria-label="Navegación de páginas">
+                    <ul className="pagination mb-0">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={handlePrevious}
+                          disabled={currentPage === 1}
+                          aria-label="Anterior"
+                        >
+                          <span aria-hidden="true">&laquo;</span>
+                        </button>
+                      </li>
+                      
+                      {getPageNumbers().map((pageNum, index) => (
+                        pageNum === '...' ? (
+                          <li key={`ellipsis-${index}`} className="page-item disabled">
+                            <span className="page-link">...</span>
+                          </li>
+                        ) : (
+                          <li 
+                            key={pageNum} 
+                            className={`page-item ${currentPage === pageNum ? 'active' : ''}`}
+                          >
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNum)}
+                            >
+                              {pageNum}
+                            </button>
+                          </li>
+                        )
+                      ))}
+                      
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={handleNext}
+                          disabled={currentPage === totalPages}
+                          aria-label="Siguiente"
+                        >
+                          <span aria-hidden="true">&raquo;</span>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {showModal && (
-        <SecurityIncidentForm
-          incident={selectedIncident}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
+        <div className="card shadow mb-4">
+          <div className="card-header py-3">
+            <h6 className="m-0 font-weight-bold text-primary">
+              {selectedIncident ? 'Editar Incidente' : 'Nuevo Incidente'}
+            </h6>
+          </div>
+          <div className="card-body">
+            <SecurityIncidentForm 
+              incident={selectedIncident} 
+              onClose={() => {
+                setShowModal(false);
+                setSelectedIncident(null);
+              }}
+              onSave={handleSave}
+            />
+          </div>
+        </div>
       )}
 
       {showDeleteModal && incidentToDelete && (
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
+        <div 
+          className="modal fade show d-block" 
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}} 
+          onClick={() => setShowDeleteModal(false)}
+          tabIndex="-1"
+        >
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">⚠️ Confirmar Eliminación</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+              <div className="modal-header">
+                <h5 className="modal-title">¿Eliminar Incidente?</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
               </div>
-              <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar este incidente?</p>
-                <p className="fs-6 fw-bold text-danger mb-2">
-                  {incidentToDelete.incident}
-                </p>
-                <p className="text-muted small">Esta acción no se puede deshacer</p>
+              <div className="modal-body">
+                <p>¿Estás seguro de eliminar el incidente <strong>{incidentToDelete.incident}</strong>?</p>
+                <p className="text-muted small">Esta acción no se puede deshacer.</p>
               </div>
-              <div className="modal-footer justify-content-center">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowDeleteModal(false)}
+                >
                   Cancelar
                 </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Sí, Eliminar
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDelete}
+                >
+                  Eliminar
                 </button>
               </div>
             </div>

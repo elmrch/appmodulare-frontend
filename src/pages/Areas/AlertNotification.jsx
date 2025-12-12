@@ -57,6 +57,9 @@ const getAlertIcon = (type) => {
     primary: '🔵',
     secondary: '⚪',
     light: '💡',
+
+
+    
     dark: '⚫'
   };
   return icons[type] || 'ℹ️';

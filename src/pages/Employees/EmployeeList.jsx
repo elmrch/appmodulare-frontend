@@ -4,20 +4,19 @@ import EmployeeForm from "./EmployeeForm";
 import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import "./EmployeeList.css";
 
 // ✅ FUNCIÓN PARA FORMATEAR FECHAS SIN PROBLEMAS DE ZONA HORARIA
 const formatDateSafe = (dateString) => {
   if (!dateString) return "—";
   
-  // Si la fecha viene en formato YYYY-MM-DD
   if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
     const [year, month, day] = dateString.split('T')[0].split('-');
     return `${day}/${month}/${year}`;
   }
   
-  // Fallback: usar Date pero con precaución
   try {
-    const date = new Date(dateString + 'T00:00:00'); // Forzar medianoche local
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('es-PE');
   } catch {
     return "—";
@@ -34,6 +33,9 @@ const EmployeeList = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+const [itemsPerPage] = useState(8); 
 
   useEffect(() => {
     loadEmployees();
@@ -60,6 +62,7 @@ const EmployeeList = () => {
   // Función de búsqueda
   const handleSearch = (value) => {
     setSearchTerm(value);
+    setCurrentPage(1);
     
     if (value.trim() === "") {
       setFilteredEmployees(employees);
@@ -81,7 +84,59 @@ const EmployeeList = () => {
     setEmployeeToDelete(employee);
     setShowDeleteModal(true);
   };
+// Cálculos de paginación
+const indexOfLastItem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+const currentItems = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem);
+const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
 
+const handlePageChange = (pageNumber) => {
+  setCurrentPage(pageNumber);
+};
+
+const handlePrevious = () => {
+  if (currentPage > 1) setCurrentPage(currentPage - 1);
+};
+
+const handleNext = () => {
+  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+};
+
+// Generar números de página con puntos suspensivos
+const getPageNumbers = () => {
+  const pageNumbers = [];
+  const maxVisiblePages = 5;
+  
+  if (totalPages <= maxVisiblePages) {
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+  } else {
+    if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pageNumbers.push(1);
+      pageNumbers.push('...');
+      for (let i = totalPages - 3; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+      pageNumbers.push('...');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+    }
+  }
+  
+  return pageNumbers;
+};
   const handleDelete = async () => {
     try {
       await employeeService.delete(employeeToDelete.id);
@@ -98,12 +153,26 @@ const EmployeeList = () => {
   const handleEdit = (emp) => {
     setSelectedEmployee(emp);
     setShowModal(true);
+    setTimeout(() => {
+    const form = document.getElementById("employee-form");
+    if (form) {
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 150);
   };
 
-  const handleNew = () => {
-    setSelectedEmployee(null);
-    setShowModal(true);
-  };
+const handleNew = () => {
+  setSelectedEmployee(null);
+  setShowModal(true);
+
+  setTimeout(() => {
+    const form = document.getElementById("employee-form");
+    if (form) {
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 150); 
+};
+
 
   const handleSave = (isEdit) => {
     setShowModal(false);
@@ -112,85 +181,131 @@ const EmployeeList = () => {
     loadEmployees();
   };
 
+
   // Exportar a PDF
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
-    const doc = new jsPDF('l', 'mm', 'a4');
-    
-    doc.setFontSize(20);
-    doc.setTextColor(40, 40, 40);
-    doc.text("LISTA DE EMPLEADOS", 148, 15, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 148, 22, { align: 'center' });
-    
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(52, 73, 94);
-    doc.line(10, 25, 287, 25);
-    
-    let yPos = 35;
-    const lineHeight = 8;
-    const leftMargin = 10;
-    
-    dataToExport.forEach((e, index) => {
-      if (yPos > 190) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      if (index % 2 === 0) {
-        doc.setFillColor(245, 245, 245);
-        doc.rect(leftMargin, yPos - 6, 277, lineHeight * 5, 'F');
-      }
-      
-      doc.setFontSize(12);
-      doc.setTextColor(52, 73, 94);
-      doc.setFont(undefined, 'bold');
-      doc.text(`${e.id}. ${e.firstName} ${e.lastName}`, leftMargin + 2, yPos);
-      
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(80, 80, 80);
-      
-      yPos += lineHeight;
-      
-      doc.text(`DNI: ${e.dni}`, leftMargin + 2, yPos);
-      doc.text(`Email: ${e.email}`, leftMargin + 2, yPos + lineHeight);
-      
-      doc.text(`Teléfono: ${e.phone || "—"}`, leftMargin + 80, yPos);
-      doc.text(`Área: ${e.area ? e.area.name : "—"}`, leftMargin + 80, yPos + lineHeight);
-      
-      doc.text(`Puesto: ${e.position || "—"}`, leftMargin + 150, yPos);
-      doc.text(`Sueldo: ${e.salary ? "S/ " + parseFloat(e.salary).toFixed(2) : "—"}`, leftMargin + 150, yPos + lineHeight);
-      
-      doc.text(`Horario: ${e.schedule ? `${e.schedule.startTime} - ${e.schedule.endTime}` : "—"}`, leftMargin + 220, yPos);
-      // ✅ Usar formatDateSafe para el PDF
-      doc.text(`Ingreso: ${formatDateSafe(e.hireDate)}`, leftMargin + 220, yPos + lineHeight);
-      
-      yPos += lineHeight * 2 + 5;
-      
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.1);
-      doc.line(leftMargin, yPos - 3, 287, yPos - 3);
+    if (dataToExport.length === 0) {
+      showAlert("warning", "No hay datos para exportar");
+      return;
+    }
+
+    const doc = new jsPDF("l", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Cargar el logo
+    const logo = "/src/assets/img/favicon_1.png";
+    const imgData = await fetch(logo)
+      .then(res => res.blob())
+      .then(blob => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      }));
+
+    // Encabezado del PDF
+    doc.addImage(imgData, 'PNG', 10, 8, 15, 15);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor("#ff1d4d"); // Color corporativo
+    doc.setFontSize(16);
+    doc.text("MODULARE AREQUIPA SAC", 30, 18);
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.setFont("helvetica", "normal");
+    doc.text("Reporte de Empleados", 30, 24);
+
+    // Tabla
+    const headers = ["ID", "EMPLEADO", "DNI", "ÁREA", "PUESTO", "HORARIO", "INGRESO"];
+    const colWidths = [10, 65, 25, 40, 40, 45, 30];
+    const startY = 35;
+    const startX = 10;
+    const rowHeight = 8;
+
+    // Dibujar encabezados de la tabla
+    doc.setFillColor(230, 230, 230); // Gris claro para el fondo del header
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.3);
+    let xPos = startX;
+
+    headers.forEach((header, i) => {
+      doc.rect(xPos, startY, colWidths[i], rowHeight, "FD");
+      xPos += colWidths[i];
     });
-    
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(50);
+    xPos = startX;
+
+    headers.forEach((header, i) => {
+      const textWidth = doc.getTextWidth(header);
+      const textX = xPos + (colWidths[i] - textWidth) / 2;
+      doc.text(header, textX, startY + 5.5);
+      xPos += colWidths[i];
+    });
+
+    // Dibujar filas de datos
+    let yPos = startY + rowHeight;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8.5);
+
+    dataToExport.forEach((row, index) => {
+      if (yPos > pageHeight - 20) { // Salto de página
+        doc.addPage();
+        yPos = 20; // Reiniciar Y en la nueva página
+      }
+
+      // Alternar color de filas
+      if (index % 2 === 0) {
+        doc.setFillColor(255, 255, 255);
+      } else {
+        doc.setFillColor(240, 240, 240);
+      }
+
+      xPos = startX;
+      headers.forEach((_, i) => {
+        doc.rect(xPos, yPos, colWidths[i], rowHeight, "FD");
+        xPos += colWidths[i];
+      });
+
+      const rowData = [
+        String(row.id),
+        `${row.firstName} ${row.lastName}`,
+        row.dni || "—",
+        row.area?.name || "—",
+        row.position || "—",
+        row.schedule ? `${row.schedule.startTime} - ${row.schedule.endTime}` : "—",
+        formatDateSafe(row.hireDate)
+      ];
+
+      xPos = startX;
+      rowData.forEach((cell, i) => {
+        doc.text(cell, xPos + 2, yPos + 5.5);
+        xPos += colWidths[i];
+      });
+
+      yPos += rowHeight;
+    });
+
+    // Pie de página
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(150);
       doc.text(
-        `Página ${i} de ${pageCount} - Total de empleados: ${dataToExport.length}`,
-        148,
-        200,
-        { align: 'center' }
+        `Página ${i} de ${totalPages} - Total de empleados: ${dataToExport.length}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
       );
     }
-    
-    doc.save(`Empleados_${new Date().toISOString().split('T')[0]}.pdf`);
-    showAlert("success", "PDF generado correctamente");
+
+    doc.save(`Reporte-Empleados_${new Date().toISOString().split("T")[0]}.pdf`);
+    showAlert('success', 'PDF generado correctamente');
   };
+
 
   // Exportar a Excel
   const exportToExcel = () => {
@@ -206,9 +321,7 @@ const EmployeeList = () => {
       'Área': e.area ? e.area.name : '',
       'Puesto': e.position || '',
       'Sueldo': e.salary || '',
-      'Horario Inicio': e.schedule ? e.schedule.startTime : '',
-      'Horario Fin': e.schedule ? e.schedule.endTime : '',
-      // ✅ Guardar fecha en formato legible en Excel
+
       'Fecha Ingreso': formatDateSafe(e.hireDate)
     }));
 
@@ -216,18 +329,9 @@ const EmployeeList = () => {
     const ws = XLSX.utils.json_to_sheet(excelData);
 
     const colWidths = [
-      { wch: 5 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 25 },
-      { wch: 12 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 15 }
+      { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
+      { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 15 }
     ];
     ws['!cols'] = colWidths;
 
@@ -237,7 +341,8 @@ const EmployeeList = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid">
+      {/* Alert */}
       {alert && (
         <AlertNotification
           type={alert.type}
@@ -246,184 +351,284 @@ const EmployeeList = () => {
         />
       )}
 
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 className="mb-0">👨‍💼 Gestión de Empleados</h2>
-        
-        <div className="d-flex gap-2 flex-wrap">
-          <div className="btn-group" role="group">
-            <button 
-              className="btn btn-success btn-sm"
-              onClick={exportToExcel}
-              disabled={employees.length === 0}
-              title="Exportar a Excel"
-            >
-              📊 Excel
-            </button>
-            <button 
-              className="btn btn-danger btn-sm"
-              onClick={exportToPDF}
-              disabled={employees.length === 0}
-              title="Exportar a PDF"
-            >
-              📄 PDF
-            </button>
-          </div>
-
-          <button className="btn btn-primary" onClick={handleNew}>
-            ➕ Nuevo Empleado
+      {/* Page Heading */}
+      <div className="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 className="h3 mb-0 text-gray-800">Gestión de Empleados</h1>
+        <div className="d-flex gap-2">
+          <button 
+            className=" d-sm-inline-block btn btn-sm btn-success shadow-sm"
+            onClick={exportToExcel}
+            disabled={employees.length === 0}
+          >
+            <i className="bi bi-file-earmark-excel text-white-50 me-1"></i> Excel
           </button>
+          <button 
+            className="d-sm-inline-block btn btn-sm btn-danger shadow-sm"
+            onClick={exportToPDF}
+            disabled={employees.length === 0}
+          >
+            <i className="bi bi-file-earmark-pdf text-white-50 me-1"></i> PDF
+          </button>
+
         </div>
       </div>
 
-      {/* Buscador */}
-      <div className="mb-3">
-        <div className="input-group">
-          <span className="input-group-text bg-primary text-white">
-            🔍
-          </span>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Buscar por nombre o DNI..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {searchTerm && (
-            <button 
-              className="btn btn-outline-secondary" 
-              type="button"
-              onClick={() => handleSearch("")}
-              title="Limpiar búsqueda"
-            >
-              ✖
-            </button>
-          )}
+      {/* Search Card */}
+
+
+    
+
+      {/* Loading */}
+      {loading && (
+        <div className="card shadow mb-4">
+          <div className="card-body text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted mt-2 mb-0">Cargando empleados...</p>
+          </div>
         </div>
-        {searchTerm && (
-          <small className="text-muted">
-            Mostrando {filteredEmployees.length} de {employees.length} empleados
-          </small>
-        )}
-      </div>
+      )}
 
-      {loading && <div className="alert alert-info">Cargando empleados...</div>}
-
+      {/* DataTales Example */}
       {!loading && (
-        <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead className="table-dark">
-              <tr>
-                <th>ID</th>
-                <th>Nombre Completo</th>
-                <th>DNI</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Área</th>
-                <th>Puesto</th>
-                <th>Sueldo</th>
-                <th>Horario</th>
-                <th>Ingreso</th>
-                <th>Foto</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
+        <div className="card shadow mb-4">
+      <div className="card shadow mb-4">
 
-            <tbody>
-              {filteredEmployees.length === 0 ? (
-                <tr>
-                  <td colSpan="12" className="text-center">
-                    {searchTerm ? "No se encontraron empleados con ese criterio" : "No hay empleados registrados"}
-                  </td>
-                </tr>
-              ) : (
-                filteredEmployees.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.id}</td>
-                    <td>{e.firstName} {e.lastName}</td>
-                    <td>{e.dni}</td>
-                    <td>{e.email}</td>
-                    <td>{e.phone}</td>
-                    <td>{e.area ? e.area.name : "—"}</td>
-                    <td>{e.position}</td>
-                    <td>
-                      {e.salary
-                        ? "S/ " + parseFloat(e.salary).toFixed(2)
-                        : "—"}
-                    </td>
-                    <td>
-                      {e.schedule
-                        ? `${e.schedule.startTime} - ${e.schedule.endTime}`
-                        : "—"}
-                    </td>
-                    <td>
-                      {/* ✅ AQUÍ ESTÁ LA CORRECCIÓN PRINCIPAL */}
-                      {formatDateSafe(e.hireDate)}
-                    </td>
-                    <td>
-                      {e.photoUrl ? (
-                        <img 
-                          src={e.photoUrl} 
-                          alt="foto" 
-                          style={{ width: "45px", height: "45px", borderRadius: "50%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="text-end" style={{ whiteSpace: "nowrap" }}>
-                      <button
-                        className="btn btn-warning btn-sm me-2 px-2 py-1"
-                        onClick={() => handleEdit(e)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm px-2 py-1"
-                        onClick={() => openDeleteModal(e)}
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </td>
+    <div className="card-body">
+  <div className="d-flex gap-2 align-items-start mb-3">
+    <div className="input-group flex-grow-1">
+      <span className="input-group-text">
+        <i className="bi bi-search"></i>
+      </span>
+      <input
+        type="text"
+        className="form-control input-sm"
+        placeholder="Buscar por nombre o DNI..."
+        value={searchTerm}
+        onChange={(e) => handleSearch(e.target.value)}
+      />
+      {searchTerm && (
+        <button 
+          className="btn btn-outline-secondary" 
+          type="button"
+          onClick={() => handleSearch("")}
+        >
+          <i className="bi bi-x-lg"></i>
+        </button>
+      )}
+    </div>
+    
+    <button 
+      className="btn btn-sm btn-primary shadow-sm text-nowrap" 
+      onClick={handleNew}
+    >
+      <i className="bi bi-plus-circle me-1"></i>
+      <span className="d-none d-md-inline">Nuevo Empleado</span>
+      <span className="d-inline d-md-none">Nuevo</span>
+    </button>
+  </div>
+  
+  {searchTerm && (
+            <small className="text-muted d-block mt-2">
+              Mostrando {filteredEmployees.length} de {employees.length} empleados
+            </small>
+          )}
+          
+        </div>
+      </div>
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="table " id="dataTable" width="100%" cellSpacing="0">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre Completo</th>
+                    <th>DNI</th>
+                    <th className=" d-md-table-cell">Área</th>
+                    <th className=" d-lg-table-cell">Puesto</th>
+                    <th className=" d-lg-table-cell">Horario</th>
+                    <th className=" d-xl-table-cell">Ingreso</th>
+                    <th>Foto</th>
+                    <th>Acciones</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+
+                <tbody>
+                  {filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-4 text-muted">
+                        <i className="bi bi-inbox fs-1 d-block mb-2"></i>
+                        {searchTerm ? 'No se encontraron empleados' : 'No hay empleados registrados'}
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((e) => (
+                      <tr key={e.id}>
+                        <td>{e.id}</td>
+                        <td>{e.firstName} {e.lastName}</td>
+                        <td>{e.dni}</td>
+                        <td className=" d-md-table-cell">
+                          {e.area?.name || "—"}
+                        </td>
+                        <td className=" d-lg-table-cell">
+                          {e.position || "—"}
+                        </td>
+                        <td className=" d-lg-table-cell">
+                          {e.schedule ? `${e.schedule.startTime} - ${e.schedule.endTime}` : "—"}
+                        </td>
+                        <td className=" d-xl-table-cell">
+                          {formatDateSafe(e.hireDate)}
+                        </td>
+                        <td className="text-center">
+                          {e.photoUrl ? (
+                            <img
+                              src={e.photoUrl}
+                              alt="foto"
+                              className="rounded-circle"
+                              style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <i className="bi bi-person-circle fs-4 text-muted"></i>
+                          )}
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-warning btn-sm me-1"
+                            onClick={() => handleEdit(e)}
+                            title="Editar"
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => openDeleteModal(e)}
+                            title="Eliminar"
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              {/* Paginación */}
+{filteredEmployees.length > 0 && totalPages > 1 && (
+  <div className="d-flex justify-content-between align-items-center mt-3">
+    <div className="text-muted small">
+      Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredEmployees.length)} de {filteredEmployees.length} registros
+    </div>
+    
+    <nav aria-label="Navegación de páginas">
+      <ul className="pagination mb-0">
+        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+          <button 
+            className="page-link" 
+            onClick={handlePrevious}
+            disabled={currentPage === 1}
+            aria-label="Anterior"
+          >
+            <span aria-hidden="true">&laquo;</span>
+          </button>
+        </li>
+        
+        {getPageNumbers().map((pageNum, index) => (
+          pageNum === '...' ? (
+            <li key={`ellipsis-${index}`} className="page-item disabled">
+              <span className="page-link">...</span>
+            </li>
+          ) : (
+            <li 
+              key={pageNum} 
+              className={`page-item ${currentPage === pageNum ? 'active' : ''}`}
+            >
+              <button 
+                className="page-link" 
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            </li>
+          )
+          
+        ))}
+        
+        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+          <button 
+            className="page-link" 
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            aria-label="Siguiente"
+          >
+            <span aria-hidden="true">&raquo;</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+)}
+            </div>
+          </div>
         </div>
       )}
-
+  {/* Formulario de creación/edición */}
       {showModal && (
-        <EmployeeForm
-          employee={selectedEmployee}
-          onClose={() => setShowModal(false)}
-          onSave={handleSave}
-        />
-      )}
-
+        <div className="card shadow mb-4">
+          <div className="card-header py-3">
+            <h6 className="m-0 font-weight-bold text-primary">
+              {selectedEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
+            </h6>
+          </div>
+          <div className="card-body">
+            <EmployeeForm 
+              employee={selectedEmployee} 
+              onClose={() => {
+                setShowModal(false);
+                setSelectedEmployee(null);
+              }}
+              onSave={handleSave}
+            />
+          </div>
+        </div>
+      )}  
+      {/* Modal Delete */}
       {showDeleteModal && employeeToDelete && (
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowDeleteModal(false)}>
+        <div 
+          className="modal fade show d-block" 
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}} 
+          onClick={() => setShowDeleteModal(false)}
+          tabIndex="-1"
+        >
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">⚠️ Confirmar Eliminación</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeleteModal(false)}></button>
+              <div className="modal-header">
+                <h5 className="modal-title">¿Eliminar Empleado?</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setShowDeleteModal(false)}
+                  aria-label="Close"
+                ></button>
               </div>
-              <div className="modal-body text-center py-4">
-                <p className="mb-2">¿Estás seguro de eliminar al empleado?</p>
-                <p className="fs-5 fw-bold text-danger mb-2">
-                  {employeeToDelete.firstName} {employeeToDelete.lastName}
-                </p>
-                <p className="text-muted small">Esta acción no se puede deshacer</p>
+              <div className="modal-body">
+                <p>¿Estás seguro de eliminar al empleado <strong>"{employeeToDelete.firstName} {employeeToDelete.lastName}"</strong>?</p>
+                <p className="text-muted small">Esta acción no se puede deshacer.</p>
               </div>
-              <div className="modal-footer justify-content-center">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowDeleteModal(false)}
+                >
                   Cancelar
                 </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Sí, Eliminar
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleDelete}
+                >
+                  Eliminar
                 </button>
               </div>
             </div>

@@ -14,6 +14,7 @@ import AbsencesList from '../pages/Absences/AbsencesList';
 import VisitList from '../pages/Visit/VisitList';
 import VisitLogin from '../pages/VisitLogin/VisitLogin';
 import SecurityIncidentList from '../pages/Bitacora/SecurityIncidentList';
+import UserList from '../pages/UserRoles/UserList ';
 
 const AppRoutes = () => {
   return (
@@ -47,6 +48,8 @@ const AppRoutes = () => {
           <Route path="/absences" element={<AbsencesList />} />
           <Route path="/visitas" element={<VisitList />} />
           <Route path="/bitácora" element={<SecurityIncidentList />} />
+                    <Route path="/usersroles" element={<UserList />} />
+
         </Route>
 
         {/* Si ponen algo extraño → loginregister */}

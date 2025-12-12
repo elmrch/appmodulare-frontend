@@ -40,51 +40,83 @@ const AttendanceForm = () => {
     setDni(value);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const error = validateDNI();
-    if (error) {
-      setMessage(error);
-      setMessageType("error");
-      setTimeout(() => setMessage(""), 5000);
-      return;
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  const error = validateDNI();
+  if (error) {
+    setMessage(error);
+    setMessageType("error");
+    setTimeout(() => setMessage(""), 5000);
+    return;
+  }
 
+  try {
+    setLoading(true);
+    
+    // ========== CAPTURAR GPS ==========
+    let gps = null;
     try {
-      setLoading(true);
-      let response;
-
-      if (type === "in") {
-        response = await attendanceService.checkIn(dni);
-        setMessage(`✅ Entrada registrada`);
-        setMessageType("success");
-      } else {
-        response = await attendanceService.checkOut(dni);
-        setMessage(`✅ Salida registrada `);
-        setMessageType("success");
-      }
-      setDni("");
-    } catch (error) {
-      console.error(error);
-      if (error.response) {
-        const data = error.response.data;
-        if (typeof data === "string") {
-          setMessage("❌ " + data);
-        } else if (data && data.message) {
-          setMessage("❌ " + data.message);
-        } else {
-          setMessage("❌ Ocurrió un error inesperado en el servidor.");
-        }
-      } else {
-        setMessage("❌ No se pudo conectar con el servidor.");
-      }
-      setMessageType("error");
-    } finally {
-      setLoading(false);
-      setTimeout(() => setMessage(""), 5000);
+      gps = await getGPSLocation();
+      console.log("📍 GPS capturado:", gps.latitude, gps.longitude);
+    } catch (gpsError) {
+      console.warn("⚠️ No se pudo obtener GPS:", gpsError);
+      // Continúa sin GPS (opcional: puedes mostrar advertencia)
     }
-  };
 
+    let response;
+
+    if (type === "in") {
+      response = await attendanceService.checkIn(
+        dni,
+        gps?.latitude,      // ← GPS ENTRADA
+        gps?.longitude,     // ← GPS ENTRADA
+        "Login Web"         // ← DESCRIPCIÓN
+      );
+      
+      // Mostrar mensaje con validación de ubicación
+      if (response.data.success) {
+        const locationMsg = response.data.locationValid 
+          ? `📍 ${response.data.distance}`
+          : `⚠️ Fuera de ubicación (${response.data.distance})`;
+        
+        setMessage(`✅ Entrada registrada\n${locationMsg}`);
+        setMessageType("success");
+      }
+      
+    } else {
+      response = await attendanceService.checkOut(
+        dni,
+        gps?.latitude,      // ← GPS SALIDA
+        gps?.longitude,     // ← GPS SALIDA
+        "Login Web"         // ← DESCRIPCIÓN
+      );
+      
+      setMessage(`✅ Salida registrada`);
+      setMessageType("success");
+    }
+    
+    setDni("");
+    
+  } catch (error) {
+    console.error(error);
+    if (error.response) {
+      const data = error.response.data;
+      if (typeof data === "string") {
+        setMessage("❌ " + data);
+      } else if (data && data.message) {
+        setMessage("❌ " + data.message);
+      } else {
+        setMessage("❌ Ocurrió un error inesperado en el servidor.");
+      }
+    } else {
+      setMessage("❌ No se pudo conectar con el servidor.");
+    }
+    setMessageType("error");
+  } finally {
+    setLoading(false);
+    setTimeout(() => setMessage(""), 5000);
+  }
+};
   // Generar partículas decorativas
   const particles = Array.from({ length: 20 }, (_, i) => ({
     id: i,
@@ -93,7 +125,33 @@ const AttendanceForm = () => {
     delay: `${Math.random() * 5}s`,
     duration: `${4 + Math.random() * 4}s`
   }));
+// ========== CAPTURA GPS AUTOMÁTICAMENTE ==========
+const getGPSLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject("Tu navegador no soporta GPS");
+      return;
+    }
 
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+      },
+      (error) => {
+        reject("No se pudo obtener tu ubicación. Activa el GPS.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+};
   return (
     <div className="attendance-wrapper vh-100 vw-100 d-flex justify-content-center align-items-center">
       
