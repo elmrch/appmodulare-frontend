@@ -35,7 +35,7 @@ const SecurityIncidentList = () => {
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(3);
+  const [itemsPerPage] = useState(8);
 
   useEffect(() => {
     loadIncidents();

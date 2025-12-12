@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { securityIncidentService } from "../../services/securityIncidentService";
+import { userService } from "../../services/userService";
 
 const SecurityIncidentForm = ({ incident, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
@@ -7,18 +8,25 @@ const SecurityIncidentForm = ({ incident, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: "",
     severity: "",
-    incident: ""
+    incident: "",
+    reportedBy: "" // Add reportedBy to the form data
   });
 
   useEffect(() => {
     if (incident) {
+      // Modo Edición: Cargar datos del incidente existente
       setFormData({
         title: incident.title ?? "",
         severity: incident.severity ?? "",
-        incident: incident.incident ?? ""
+        incident: incident.incident ?? "",
+      reportedBy: incident.reportedBy || userService.getUserData().fullName || '' // ✅ CAMBIO AQUÍ
       });
+    } else {
+      // Modo Creación: Solo establecer quién reporta
+      const userData = userService.getUserData();
+    setFormData(prev => ({ ...prev, reportedBy: userData.fullName || '' })); // ✅ CAMBIO AQUÍ
     }
-  }, [incident]);
+  }, [incident]); // La dependencia es correcta
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,6 +39,7 @@ const SecurityIncidentForm = ({ incident, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
 
     try {
       if (incident) {
@@ -130,7 +139,7 @@ const SecurityIncidentForm = ({ incident, onClose, onSave }) => {
                 </div>
 
                 <div className="alert alert-info d-flex align-items-start" role="alert">
-                  <i className="bi bi-info-circle me-2 mt-1"></i>
+                <i className="bi bi-info-circle me-2 mt-1"></i>
                   <div>
                     <strong>Nota:</strong> La fecha/hora y el usuario que reporta se registrarán automáticamente.
                   </div>
