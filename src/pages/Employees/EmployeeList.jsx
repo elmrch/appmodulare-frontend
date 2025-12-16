@@ -5,6 +5,7 @@ import AlertNotification from "../Areas/AlertNotification";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import "./EmployeeList.css";
+import { QRCodeSVG } from 'qrcode.react';
 
 // ✅ FUNCIÓN PARA FORMATEAR FECHAS SIN PROBLEMAS DE ZONA HORARIA
 const formatDateSafe = (dateString) => {
@@ -33,7 +34,8 @@ const EmployeeList = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
-
+const [showQrModal, setShowQrModal] = useState(false);
+const [selectedQrCode, setSelectedQrCode] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 const [itemsPerPage] = useState(8); 
 
@@ -180,7 +182,84 @@ const handleNew = () => {
     showAlert("success", isEdit ? "Empleado actualizado correctamente" : "Empleado creado correctamente");
     loadEmployees();
   };
+const handleGenerateQr = async (employee) => {
+  try {
+    const response = await employeeService.generateQrCode(employee.id);
+    const qrCode = response.data;
+    
+    // Mostrar modal con el código QR
+    setSelectedQrCode({ 
+      code: qrCode, 
+      employee: employee 
+    });
+    setShowQrModal(true);
+    
+    showAlert("success", "Código QR generado correctamente");
+    loadEmployees();
+  } catch (error) {
+    console.error("Error:", error);
+    showAlert("danger", "Error al generar código QR");
+  }
+};
+  const handleDownloadQrPdf = async () => {
+  if (!selectedQrCode) return;
 
+  const { employee, code } = selectedQrCode;
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Cargar logo
+  const logo = "/src/assets/img/favicon_1.png";
+  const imgData = await fetch(logo)
+    .then(res => res.blob())
+    .then(blob => new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    }));
+
+  // Encabezado
+  doc.addImage(imgData, 'PNG', 15, 15, 20, 20);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("MODULARE AREQUIPA SAC", pageWidth / 2, 25, { align: "center" });
+  doc.setFontSize(12);
+  doc.text("Código QR de Asistencia", pageWidth / 2, 33, { align: "center" });
+
+  // Datos del empleado
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text(`Empleado: ${employee.firstName} ${employee.lastName}`, 15, 50);
+  doc.text(`DNI: ${employee.dni}`, 15, 57);
+
+  // Convertir SVG a PNG a través de un Canvas para añadir al PDF
+  const svgElement = document.getElementById('qr-code-container').querySelector('svg');
+  const svgString = new XMLSerializer().serializeToString(svgElement);
+  const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(svgBlob);
+
+  const img = new Image();
+  img.src = url;
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const scale = 2; // Aumentar la escala para mejor resolución
+    canvas.width = svgElement.width.baseVal.value * scale;
+    canvas.height = svgElement.height.baseVal.value * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const pngDataUrl = canvas.toDataURL('image/png');
+    doc.addImage(pngDataUrl, 'PNG', (pageWidth / 2) - 40, 70, 80, 80);
+    doc.save(`QR_${employee.dni}_${employee.lastName}.pdf`);
+    URL.revokeObjectURL(url);
+  };
+  
+  img.onerror = (e) => {
+    console.error("Error al cargar la imagen SVG para el PDF", e);
+    showAlert("danger", "No se pudo generar el PDF del QR.");
+    URL.revokeObjectURL(url);
+  };
+};
 
   // Exportar a PDF
   const exportToPDF = async () => {
@@ -493,6 +572,14 @@ const handleNew = () => {
                           )}
                         </td>
                         <td>
+                        <button 
+  className="btn btn-info btn-sm me-1"
+  onClick={() => handleGenerateQr(e)}
+  title="Generar QR"
+  disabled={e.qrEnabled}
+>
+  <i className="bi bi-qr-code"></i>
+</button>
                           <button 
                             className="btn btn-warning btn-sm me-1"
                             onClick={() => handleEdit(e)}
@@ -572,6 +659,72 @@ const handleNew = () => {
           </div>
         </div>
       )}
+      {/* Modal QR Code */}
+{showQrModal && selectedQrCode && (
+  <div 
+    className="modal fade show d-block" 
+    style={{backgroundColor: 'rgba(0,0,0,0.5)'}} 
+    onClick={() => setShowQrModal(false)}
+    tabIndex="-1"
+  >
+    <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">
+            <i className="bi bi-qr-code me-2"></i>
+            Código QR - {selectedQrCode.employee.firstName} {selectedQrCode.employee.lastName}
+          </h5>
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setShowQrModal(false)}
+          ></button>
+        </div>
+        <div className="modal-body text-center">
+          <div className="alert alert-info mb-3">
+            <strong>Código:</strong> {selectedQrCode.code}
+          </div>
+          
+          {/* Aquí puedes agregar un QR visual usando una librería */}
+<div className="p-4 bg-light rounded" id="qr-code-container">
+  <p className="text-muted mb-2">Escanea este código QR para registrar asistencia</p>
+  <div className="d-flex justify-content-center mb-3">
+    <QRCodeSVG 
+      value={selectedQrCode.code} 
+      size={220}
+      level="H"
+      includeMargin={true}
+    />
+  </div>
+  <code className="d-block p-2 bg-white border rounded small">
+    {selectedQrCode.code}
+  </code>
+</div>
+          
+          <div className="d-flex justify-content-center gap-2 mt-4">
+            <button 
+              className="btn btn-secondary"
+              onClick={() => {
+                navigator.clipboard.writeText(selectedQrCode.code);
+                showAlert("success", "Código copiado al portapapeles");
+              }}
+            >
+              <i className="bi bi-clipboard me-2"></i>
+              Copiar Código
+            </button>
+            <button 
+              className="btn btn-primary"
+              onClick={handleDownloadQrPdf}
+            >
+              <i className="bi bi-file-earmark-pdf me-2"></i>
+              Descargar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
   {/* Formulario de creación/edición */}
       {showModal && (
         <div className="card shadow mb-4">

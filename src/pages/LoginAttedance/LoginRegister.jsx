@@ -1,32 +1,121 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { attendanceService } from "../../services/attendanceService";
-import { Link, useNavigate } from "react-router-dom";   // ← AGREGADO useNavigate
-
+import { Link, useNavigate } from "react-router-dom";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import "./login.css";
-
 const AttendanceForm = () => {
     const navigate = useNavigate();   // ← AGREGADO navigate
 
   const [dni, setDni] = useState("");
   const [type, setType] = useState("in");
+    const [showScanner, setShowScanner] = useState(false);
+
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [loading, setLoading] = useState(false);
   const [dateTime, setDateTime] = useState({ date: "", time: "" });
+  const scannerRef = useRef(null);
+
 
   // ⏰ Reloj en tiempo real
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      setDateTime({
-        date: now.toLocaleDateString("es-PE", { 
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-        }),
-        time: now.toLocaleTimeString("es-PE")
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+// ⏰ Reloj en tiempo real
+useEffect(() => {
+  const interval = setInterval(() => {
+    const now = new Date();
+    setDateTime({
+      date: now.toLocaleDateString("es-PE", { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+      }),
+      time: now.toLocaleTimeString("es-PE")
+    });
+  }, 1000);
+  return () => clearInterval(interval);
+}, []);
+
+// 📸 Inicializar scanner cuando se abre
+useEffect(() => {
+  if (showScanner && !scannerRef.current) {
+    const scanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { 
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      },
+      false
+    );
+
+    scanner.render(onScanSuccess, onScanError);
+    scannerRef.current = scanner;
+  }
+
+  return () => {
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(console.error);
+      scannerRef.current = null;
+    }
+  };
+}, [showScanner]);
+const onScanSuccess = async (decodedText) => {
+  console.log("QR escaneado:", decodedText);
+  
+  try {
+    setLoading(true);
+    setShowScanner(false);
+    
+    if (scannerRef.current) {
+      scannerRef.current.clear();
+      scannerRef.current = null;
+    }
+    
+    let gps = null;
+    try {
+      gps = await getGPSLocation();
+    } catch (gpsError) {
+      console.warn("⚠️ No se pudo obtener GPS:", gpsError);
+    }
+
+    let response;
+    
+    if (type === "in") {
+      response = await attendanceService.checkIn(
+        decodedText,  // ← QR, NO DNI
+        gps?.latitude,
+        gps?.longitude,
+        "QR Scan"
+      );
+      
+      if (response.data.success) {
+        setMessage(`✅ Entrada registrada con QR`);
+        setMessageType("success");
+      }
+    } else {
+      response = await attendanceService.checkOut(
+        decodedText,
+        gps?.latitude,
+        gps?.longitude,
+        "QR Scan"
+      );
+      setMessage(`✅ Salida registrada con QR`);
+      setMessageType("success");
+    }
+    
+  } catch (error) {
+    console.error(error);
+    setMessage("❌ Error al registrar con QR");
+    setMessageType("error");
+  } finally {
+    setLoading(false);
+    setTimeout(() => setMessage(""), 5000);
+  }
+};
+
+const onScanError = (error) => {
+  // No mostrar errores normales de escaneo
+  if (!error.includes("NotFoundException")) {
+    console.warn("Scanner error:", error);
+  }
+};
 
   const validateDNI = () => {
     if (!dni) return "Debe ingresar su DNI.";
@@ -145,9 +234,9 @@ const getGPSLocation = () => {
         reject("No se pudo obtener tu ubicación. Activa el GPS.");
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        enableHighAccuracy: false, // Cambiado a false para una respuesta más rápida
+        timeout: 5000,             // Reducido el tiempo de espera a 5 segundos
+        maximumAge: 60000          // Acepta una ubicación en caché de hasta 1 minuto
       }
     );
   });
@@ -250,6 +339,39 @@ const getGPSLocation = () => {
               )}
             </div>
           </div>
+{/* Botón para abrir cámara QR */}
+          <button
+            type="button"
+            className="btn btn-outline-light w-100 mb-3"
+            onClick={() => setShowScanner(!showScanner)}
+            disabled={loading}
+          >
+            <i className="bi bi-camera me-2"></i>
+            {showScanner ? "CERRAR CÁMARA" : "ESCANEAR QR"}
+          </button>
+
+          {/* Modal Scanner QR */}
+          {showScanner && (
+            <div className="qr-scanner-container mb-3">
+              <div className="scanner-box">
+                <div id="qr-reader" style={{ width: '100%' }}></div>
+                
+                <button
+                  className="btn btn-sm btn-danger mt-2 w-100"
+                  onClick={() => {
+                    if (scannerRef.current) {
+                      scannerRef.current.clear();
+                      scannerRef.current = null;
+                    }
+                    setShowScanner(false);
+                  }}
+                >
+                  <i className="bi bi-x-circle me-2"></i>
+                  Cerrar Cámara
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Botón Submit */}
           <button
@@ -281,19 +403,21 @@ const getGPSLocation = () => {
         )}
 
         {/* Link al Dashboard */}
-     <button
-        className="btn btn-secondary mt-2"
-        onClick={() => navigate("/login-admin")}   // ← YA FUNCIONA
-      >
-        Ir al Dashboard
-      </button>
+        <button
+          className="btn btn-secondary mt-2 w-100"
+          onClick={() => navigate("/login-admin")}
+        >
+          <i className="bi bi-speedometer2 me-2"></i>
+          Ir al Dashboard
+        </button>
 
-           <button
-        className="btn btn-secondary mt-2"
-        onClick={() => navigate("/Visit-Login")}   // ← YA FUNCIONA
-      >
-        visitantes
-      </button>
+        <button
+          className="btn btn-secondary mt-2 w-100"
+          onClick={() => navigate("/Visit-Login")}
+        >
+          <i className="bi bi-people me-2"></i>
+          Visitantes
+        </button>
 
         {/* Footer */}
         <p className="text-center text-white-50 small mt-3 mb-0">

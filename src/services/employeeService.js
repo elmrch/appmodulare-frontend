@@ -14,6 +14,13 @@ export const employeeService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-  }
+  },
+
+    generateQrCode: (employeeId) => api.post(`/employes/${employeeId}/generate-qr`),
+  
+  findByQrCode: (qrCode) => api.get(`/employes/qr/${qrCode}`),
+  
+  findByDniOrQr: (identifier) => api.get(`/employes/search/${identifier}`)
+  
 
 };
