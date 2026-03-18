@@ -21,13 +21,11 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
 
-        {/* ✅ Ruta raíz redirige a /loginregister */}
         <Route path="/" element={<Navigate to="/loginregister" replace />} />
 
-        {/* ✅ Login para marcar asistencia */}
+      
         <Route path="/loginregister" element={<LoginRegister />} />
 
-        {/* Login para administración */}
         <Route path="/login-admin" element={<LoginAdmin />} />
            <Route path="/Visit-Login" element={<VisitLogin/>} />
 
@@ -52,7 +50,7 @@ const AppRoutes = () => {
 
         </Route>
 
-        {/* Si ponen algo extraño → loginregister */}
+       
         <Route path="*" element={<Navigate to="/loginregister" replace />} />
 
       </Routes>

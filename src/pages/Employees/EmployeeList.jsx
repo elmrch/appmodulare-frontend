@@ -209,7 +209,7 @@ const handleGenerateQr = async (employee) => {
   const pageWidth = doc.internal.pageSize.getWidth();
 
   // Cargar logo
-  const logo = "/src/assets/img/favicon_1.png";
+  const logo = "/src/assets/img/image.png"; // Usar imagen de alta resolución
   const imgData = await fetch(logo)
     .then(res => res.blob())
     .then(blob => new Promise((resolve) => {
@@ -219,7 +219,7 @@ const handleGenerateQr = async (employee) => {
     }));
 
   // Encabezado
-  doc.addImage(imgData, 'PNG', 15, 15, 20, 20);
+  doc.addImage(imgData, 'PNG', 15, 15, 45, 15); // Ajustado a formato rectangular (más ancho)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.text("MODULARE AREQUIPA SAC", pageWidth / 2, 25, { align: "center" });
@@ -274,7 +274,7 @@ const handleGenerateQr = async (employee) => {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // Cargar el logo
-    const logo = "/src/assets/img/favicon_1.png";
+    const logo = "/src/assets/img/image.png"; // Usar imagen de alta resolución
     const imgData = await fetch(logo)
       .then(res => res.blob())
       .then(blob => new Promise((resolve) => {
@@ -284,15 +284,15 @@ const handleGenerateQr = async (employee) => {
       }));
 
     // Encabezado del PDF
-    doc.addImage(imgData, 'PNG', 10, 8, 15, 15);
+    doc.addImage(imgData, 'PNG', 10, 8, 35, 12); // Logo más ancho y proporcionado
     doc.setFont("helvetica", "bold");
     doc.setTextColor("#ff1d4d"); // Color corporativo
     doc.setFontSize(16);
-    doc.text("MODULARE AREQUIPA SAC", 30, 18);
+    doc.text("MODULARE AREQUIPA SAC", 50, 18); // Movido a la derecha para no tapar el logo
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.setFont("helvetica", "normal");
-    doc.text("Reporte de Empleados", 30, 24);
+    doc.text("Reporte de Empleados", 50, 24); // Movido a la derecha
 
     // Tabla
     const headers = ["ID", "EMPLEADO", "DNI", "ÁREA", "PUESTO", "HORARIO", "INGRESO"];
